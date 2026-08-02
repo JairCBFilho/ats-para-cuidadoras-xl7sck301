@@ -9,6 +9,10 @@ import {
   MapPin,
   BookOpen,
   MessageCircle,
+  FileText,
+  Linkedin,
+  ExternalLink,
+  Send,
 } from 'lucide-react'
 import { useRealtime } from '@/hooks/use-realtime'
 import { getCandidata, type Candidata } from '@/services/candidatas'
@@ -18,9 +22,12 @@ import {
   type Referencia,
   type StatusReferencia,
 } from '@/services/referencias'
+import { useFileUrl } from '@/hooks/use-file-url'
 import { ReferenciaDialog } from '@/components/ReferenciaDialog'
 import { CandidataOnboarding } from '@/components/CandidataOnboarding'
 import { CompatibilidadeSection } from '@/components/CompatibilidadeSection'
+import { CandidataEntrevistas } from '@/components/CandidataEntrevistas'
+import { ManualCommunicationDialog } from '@/components/ManualCommunicationDialog'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -32,7 +39,6 @@ const statusStyles: Record<StatusReferencia, string> = {
   confirmada: 'bg-green-100 text-green-800 border-green-200',
   rejeitada: 'bg-red-100 text-red-800 border-red-200',
 }
-
 const statusLabel: Record<StatusReferencia, string> = {
   pendente: 'Pendente',
   confirmada: 'Confirmada',
@@ -46,6 +52,8 @@ export default function CandidataProfile() {
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingRef, setEditingRef] = useState<Referencia | null>(null)
+  const [commOpen, setCommOpen] = useState(false)
+  const curriculoUrl = useFileUrl(candidata?.curriculo ? candidata : null, candidata?.curriculo)
 
   const loadData = async () => {
     if (!id) return
@@ -59,19 +67,21 @@ export default function CandidataProfile() {
       setLoading(false)
     }
   }
-
   useEffect(() => {
     loadData()
   }, [id])
-  useRealtime('referencias', () => {
+  useRealtime('candidatas', () => {
+    loadData()
+  })
+  useRealtime('applications', () => {
     loadData()
   })
 
   const handleDelete = async (refId: string) => {
-    if (!confirm('Deseja realmente excluir esta referência?')) return
+    if (!confirm('Deseja excluir esta referência?')) return
     try {
       await deleteReferencia(refId)
-      toast.success('Referência excluída com sucesso!')
+      toast.success('Referência excluída!')
     } catch (err) {
       toast.error(getErrorMessage(err))
     }
@@ -82,11 +92,16 @@ export default function CandidataProfile() {
 
   return (
     <div className="space-y-6 p-6">
-      <Button variant="ghost" size="sm" asChild>
-        <Link to="/candidatas">
-          <ArrowLeft className="mr-2 h-4 w-4" /> Voltar para Candidatas
-        </Link>
-      </Button>
+      <div className="flex items-center justify-between">
+        <Button variant="ghost" size="sm" asChild>
+          <Link to="/candidatas">
+            <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
+          </Link>
+        </Button>
+        <Button onClick={() => setCommOpen(true)}>
+          <Send className="mr-2 h-4 w-4" /> Enviar comunicação
+        </Button>
+      </div>
 
       <Card>
         <CardHeader>
@@ -96,18 +111,16 @@ export default function CandidataProfile() {
           <div className="flex items-center gap-2 text-sm">
             <Mail className="h-4 w-4 text-muted-foreground" /> {candidata.email}
           </div>
-          {candidata.telefone ? (
+          {candidata.telefone && (
             <a
-              href={`https://wa.me/${candidata.telefone.replace(/[^\d]/g, '')}?text=${encodeURIComponent(`Olá ${candidata.nome}, tudo bem? Estamos entrando em contato pelo CuidarATS para falar sobre o seu processo seletivo.`)}`}
+              href={`https://wa.me/${candidata.telefone.replace(/[^\d]/g, '')}`}
               target="_blank"
               rel="noopener noreferrer"
             >
               <Button variant="outline" size="sm">
-                <MessageCircle className="mr-2 h-4 w-4" /> Enviar WhatsApp
+                <MessageCircle className="mr-2 h-4 w-4" /> WhatsApp
               </Button>
             </a>
-          ) : (
-            <p className="text-xs text-muted-foreground">Telefone não informado</p>
           )}
           {candidata.formacao && (
             <div className="flex items-center gap-2 text-sm">
@@ -124,6 +137,31 @@ export default function CandidataProfile() {
               {candidata.experiencia}
             </p>
           )}
+          <div className="flex flex-wrap gap-3 pt-2 border-t mt-2">
+            {curriculoUrl ? (
+              <a href={curriculoUrl} target="_blank" rel="noopener noreferrer">
+                <Button variant="outline" size="sm">
+                  <FileText className="mr-2 h-4 w-4" /> Currículo
+                </Button>
+              </a>
+            ) : (
+              <p className="text-xs text-muted-foreground">Currículo não informado</p>
+            )}
+            {candidata.linkedin && (
+              <a href={candidata.linkedin} target="_blank" rel="noopener noreferrer">
+                <Button variant="outline" size="sm">
+                  <Linkedin className="mr-2 h-4 w-4" /> LinkedIn
+                </Button>
+              </a>
+            )}
+            {candidata.portfolio && (
+              <a href={candidata.portfolio} target="_blank" rel="noopener noreferrer">
+                <Button variant="outline" size="sm">
+                  <ExternalLink className="mr-2 h-4 w-4" /> Portfólio
+                </Button>
+              </a>
+            )}
+          </div>
         </CardContent>
       </Card>
 
@@ -140,7 +178,6 @@ export default function CandidataProfile() {
           <Plus className="mr-2 h-4 w-4" /> Nova Referência
         </Button>
       </div>
-
       <div className="grid gap-4">
         {referencias.length === 0 ? (
           <Card>
@@ -187,15 +224,15 @@ export default function CandidataProfile() {
           ))
         )}
       </div>
-
       <ReferenciaDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         candidataId={id!}
         referencia={editingRef}
       />
-
+      <CandidataEntrevistas candidataId={id!} />
       <CandidataOnboarding candidataId={id!} />
+      <ManualCommunicationDialog open={commOpen} onOpenChange={setCommOpen} candidataId={id!} />
     </div>
   )
 }

@@ -3,6 +3,8 @@ import pb from '@/lib/pocketbase/client'
 export interface CompatibilidadeResult {
   score: number
   justificativa: string
+  pontos_fortes: string
+  pontos_atencao: string
 }
 
 export const calcularCompatibilidade = (candidataId: string, vagaId: string) =>

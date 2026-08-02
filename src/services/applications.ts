@@ -8,6 +8,9 @@ export interface Application {
   candidata: string
   etapa: Etapa
   compatibilidade?: number
+  pontos_fortes?: string
+  pontos_atencao?: string
+  justificativa?: string
   created: string
   updated: string
 }

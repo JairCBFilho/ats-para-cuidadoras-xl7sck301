@@ -7,6 +7,7 @@ import {
 } from '@/services/candidatas'
 import { extractFieldErrors, type FieldErrors } from '@/lib/pocketbase/errors'
 import { FotoUpload } from '@/components/foto-upload'
+import { CurriculoUpload } from '@/components/CurriculoUpload'
 import {
   Dialog,
   DialogContent,
@@ -44,6 +45,8 @@ const defaultForm = {
   experiencia: '',
   telefone: '',
   origem: '',
+  linkedin: '',
+  portfolio: '',
 }
 
 export function CandidataFormDialog({ open, onOpenChange, candidata, onSaved }: Props) {
@@ -52,6 +55,8 @@ export function CandidataFormDialog({ open, onOpenChange, candidata, onSaved }: 
   const [saving, setSaving] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [fotoRemoved, setFotoRemoved] = useState(false)
+  const [selectedCurriculo, setSelectedCurriculo] = useState<File | null>(null)
+  const [curriculoRemoved, setCurriculoRemoved] = useState(false)
 
   useEffect(() => {
     if (open) {
@@ -65,12 +70,16 @@ export function CandidataFormDialog({ open, onOpenChange, candidata, onSaved }: 
               experiencia: candidata.experiencia || '',
               telefone: candidata.telefone || '',
               origem: candidata.origem || '',
+              linkedin: candidata.linkedin || '',
+              portfolio: candidata.portfolio || '',
             }
           : defaultForm,
       )
       setErrors({})
       setSelectedFile(null)
       setFotoRemoved(false)
+      setSelectedCurriculo(null)
+      setCurriculoRemoved(false)
     }
   }, [open, candidata])
 
@@ -78,27 +87,24 @@ export function CandidataFormDialog({ open, onOpenChange, candidata, onSaved }: 
     const errs: FieldErrors = {}
     if (!form.nome.trim()) errs.nome = 'Nome é obrigatório'
     if (!form.email.trim()) errs.email = 'E-mail é obrigatório'
-    if (form.telefone && !/^[0-9+ ]+$/.test(form.telefone)) {
-      errs.telefone = 'Telefone deve conter apenas números, + e espaços'
-    }
+    if (form.telefone && !/^[0-9+ ]+$/.test(form.telefone)) errs.telefone = 'Telefone inválido'
+    if (form.linkedin && !/^https?:\/\//.test(form.linkedin)) errs.linkedin = 'URL inválida'
+    if (form.portfolio && !/^https?:\/\//.test(form.portfolio)) errs.portfolio = 'URL inválida'
     setErrors(errs)
     if (Object.keys(errs).length > 0) return
-
     setSaving(true)
     try {
       const data: CandidataInput = { ...form }
-      if (selectedFile) {
-        data.foto = selectedFile
-      } else if (fotoRemoved) {
-        data.foto = null
-      }
-
+      if (selectedFile) data.foto = selectedFile
+      else if (fotoRemoved) data.foto = null
+      if (selectedCurriculo) data.curriculo = selectedCurriculo
+      else if (curriculoRemoved) data.curriculo = null
       if (candidata) {
         await updateCandidata(candidata.id, data)
-        toast.success('Candidata atualizada com sucesso!')
+        toast.success('Candidata atualizada!')
       } else {
         await createCandidata(data)
-        toast.success('Candidata criada com sucesso!')
+        toast.success('Candidata criada!')
       }
       onOpenChange(false)
       onSaved()
@@ -112,7 +118,7 @@ export function CandidataFormDialog({ open, onOpenChange, candidata, onSaved }: 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{candidata ? 'Editar Candidata' : 'Nova Candidata'}</DialogTitle>
         </DialogHeader>
@@ -161,12 +167,12 @@ export function CandidataFormDialog({ open, onOpenChange, candidata, onSaved }: 
               onValueChange={(v) => setForm({ ...form, origem: v })}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Selecione a origem" />
+                <SelectValue placeholder="Selecione" />
               </SelectTrigger>
               <SelectContent>
-                {ORIGEM_OPTIONS.map((opt) => (
-                  <SelectItem key={opt} value={opt}>
-                    {opt}
+                {ORIGEM_OPTIONS.map((o) => (
+                  <SelectItem key={o} value={o}>
+                    {o}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -195,6 +201,39 @@ export function CandidataFormDialog({ open, onOpenChange, candidata, onSaved }: 
               value={form.experiencia}
               onChange={(e) => setForm({ ...form, experiencia: e.target.value })}
               rows={3}
+            />
+          </div>
+          <div>
+            <Label htmlFor="linkedin">LinkedIn (URL)</Label>
+            <Input
+              id="linkedin"
+              value={form.linkedin}
+              placeholder="https://linkedin.com/in/..."
+              onChange={(e) => setForm({ ...form, linkedin: e.target.value })}
+            />
+            {errors.linkedin && <p className="mt-1 text-sm text-destructive">{errors.linkedin}</p>}
+          </div>
+          <div>
+            <Label htmlFor="portfolio">Portfólio (URL)</Label>
+            <Input
+              id="portfolio"
+              value={form.portfolio}
+              placeholder="https://..."
+              onChange={(e) => setForm({ ...form, portfolio: e.target.value })}
+            />
+            {errors.portfolio && (
+              <p className="mt-1 text-sm text-destructive">{errors.portfolio}</p>
+            )}
+          </div>
+          <div>
+            <Label>Currículo (PDF)</Label>
+            <CurriculoUpload
+              record={candidata}
+              curriculo={candidata?.curriculo}
+              onChange={(file) => {
+                setSelectedCurriculo(file)
+                setCurriculoRemoved(!file)
+              }}
             />
           </div>
         </div>

@@ -12,11 +12,17 @@ export interface Candidata {
   telefone: string
   origem: string
   foto: string
+  curriculo: string
+  linkedin: string
+  portfolio: string
   created: string
   updated: string
 }
 
-export type CandidataInput = Omit<Partial<Candidata>, 'foto'> & { foto?: File | null }
+export type CandidataInput = Omit<Partial<Candidata>, 'foto' | 'curriculo'> & {
+  foto?: File | null
+  curriculo?: File | null
+}
 
 export const getCandidatas = () =>
   pb.collection('candidatas').getFullList<Candidata>({ sort: '-created' })

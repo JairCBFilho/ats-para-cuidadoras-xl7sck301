@@ -1,15 +1,10 @@
 onRecordAfterUpdateSuccess((e) => {
   var oldEtapa = e.record.original().getString('etapa')
   var newEtapa = e.record.getString('etapa')
-
-  if (oldEtapa === newEtapa) {
-    return e.next()
-  }
+  if (oldEtapa === newEtapa) return e.next()
 
   var candidataId = e.record.getString('candidata')
-  if (!candidataId) {
-    return e.next()
-  }
+  if (!candidataId) return e.next()
 
   var candidata
   try {
@@ -23,27 +18,51 @@ onRecordAfterUpdateSuccess((e) => {
 
   var email = candidata.getString('email')
   var nome = candidata.getString('nome')
-
   if (!email) {
     $app.logger().warn('candidata has no email', 'candidataId', candidataId)
     return e.next()
   }
 
+  var vagaId = e.record.getString('vaga')
   var cargo = ''
   try {
-    var vaga = $app.findRecordById('vagas', e.record.getString('vaga'))
+    var vaga = $app.findRecordById('vagas', vagaId)
     cargo = vaga.getString('cargo')
   } catch (_) {}
 
-  var assunto = ''
-  var corpo = ''
-
-  var template
+  var dataEntrevista = 'data a confirmar'
   try {
-    template = $app.findFirstRecordByData('email_templates', 'etapa', newEtapa)
-  } catch (_) {
-    template = null
-  }
+    var ents = $app.findRecordsByFilter(
+      'entrevistas',
+      "candidata = '" + candidataId + "' && vaga = '" + vagaId + "' && status = 'agendada'",
+      'data_hora',
+      1,
+      0,
+    )
+    if (ents.length > 0) {
+      var rawDate = ents[0].getString('data_hora')
+      var d = new Date(rawDate)
+      var pDay = d.getDate() < 10 ? '0' + d.getDate() : '' + d.getDate()
+      var pMonth = d.getMonth() + 1 < 10 ? '0' + (d.getMonth() + 1) : '' + (d.getMonth() + 1)
+      var pHour = d.getHours() < 10 ? '0' + d.getHours() : '' + d.getHours()
+      var pMin = d.getMinutes() < 10 ? '0' + d.getMinutes() : '' + d.getMinutes()
+      dataEntrevista = pDay + '/' + pMonth + '/' + d.getFullYear() + ' ' + pHour + ':' + pMin
+    }
+  } catch (_) {}
+
+  var assunto = '',
+    corpo = ''
+  var template = null
+  try {
+    var templates = $app.findRecordsByFilter(
+      'email_templates',
+      "etapa = '" + newEtapa + "' && canal = 'email'",
+      'created',
+      1,
+      0,
+    )
+    if (templates.length > 0) template = templates[0]
+  } catch (_) {}
 
   if (template) {
     assunto = template.getString('assunto')
@@ -89,10 +108,14 @@ onRecordAfterUpdateSuccess((e) => {
     .replace(/{nome_candidata}/g, nome)
     .replace(/{cargo}/g, cargo)
     .replace(/{etapa}/g, newEtapa)
+    .replace(/{nome_vaga}/g, cargo)
+    .replace(/{data_entrevista}/g, dataEntrevista)
   corpo = corpo
     .replace(/{nome_candidata}/g, nome)
     .replace(/{cargo}/g, cargo)
     .replace(/{etapa}/g, newEtapa)
+    .replace(/{nome_vaga}/g, cargo)
+    .replace(/{data_entrevista}/g, dataEntrevista)
 
   try {
     var client = $app.newMailClient()
@@ -108,6 +131,5 @@ onRecordAfterUpdateSuccess((e) => {
   } catch (err) {
     $app.logger().error('failed to send email', 'error', String(err), 'to', email)
   }
-
   return e.next()
 }, 'applications')
