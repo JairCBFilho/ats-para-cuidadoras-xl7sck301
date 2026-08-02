@@ -9,6 +9,7 @@ import { Plus, Pencil, Trash2, CalendarDays } from 'lucide-react'
 import { toast } from 'sonner'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
 import { formatDateTime } from '@/lib/template-utils'
+import { GoogleCalendarLink } from '@/components/GoogleCalendarLink'
 
 const statusLabel: Record<string, string> = {
   agendada: 'Agendada',
@@ -97,6 +98,14 @@ export default function Entrevistas() {
                   {ent.observacoes && (
                     <p className="text-sm text-muted-foreground">{ent.observacoes}</p>
                   )}
+                  <div className="mt-2">
+                    <GoogleCalendarLink
+                      candidataNome={ent.expand?.candidata?.nome || ''}
+                      cargo={ent.expand?.vaga?.cargo || ''}
+                      dataHora={ent.data_hora}
+                      observacoes={ent.observacoes}
+                    />
+                  </div>
                 </div>
                 <div className="flex gap-1">
                   <Button

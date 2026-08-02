@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-02T23:17:41.908Z",
+  "generatedAt": "2026-08-02T23:38:26.398Z",
   "collections": [
     {
       "name": "users",
@@ -565,6 +565,78 @@
         }
       ],
       "indexes": []
+    },
+    {
+      "name": "notificacoes",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "mensagem",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "tipo",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["nova_candidatura", "entrevista_proxima"]
+        },
+        {
+          "name": "lida",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "candidata",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "candidatas"
+        },
+        {
+          "name": "vaga",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "vagas"
+        },
+        {
+          "name": "entrevista",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "entrevistas"
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_notificacoes_lida ON notificacoes (lida)",
+        "CREATE INDEX idx_notificacoes_tipo ON notificacoes (tipo)",
+        "CREATE INDEX idx_notificacoes_entrevista_tipo ON notificacoes (entrevista, tipo)"
+      ]
     }
   ]
 }

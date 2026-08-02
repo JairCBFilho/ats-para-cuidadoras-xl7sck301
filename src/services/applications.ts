@@ -41,4 +41,6 @@ export const getApplicationsByCandidata = (candidataId: string) =>
 export const getApplicationsByVaga = (vagaId: string) =>
   pb.collection('applications').getFullList<Application>({
     filter: `vaga = "${vagaId}"`,
+    sort: '-created',
+    expand: 'candidata',
   })

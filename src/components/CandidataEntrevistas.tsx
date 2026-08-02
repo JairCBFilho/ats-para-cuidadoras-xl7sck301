@@ -13,6 +13,7 @@ import { Plus, Pencil, Trash2, Calendar } from 'lucide-react'
 import { toast } from 'sonner'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
 import { formatDateTime } from '@/lib/template-utils'
+import { GoogleCalendarLink } from '@/components/GoogleCalendarLink'
 
 const statusLabel: Record<string, string> = {
   agendada: 'Agendada',
@@ -25,7 +26,13 @@ const statusColor: Record<string, string> = {
   cancelada: 'bg-red-100 text-red-800 border-red-200',
 }
 
-export function CandidataEntrevistas({ candidataId }: { candidataId: string }) {
+export function CandidataEntrevistas({
+  candidataId,
+  candidataNome,
+}: {
+  candidataId: string
+  candidataNome?: string
+}) {
   const [entrevistas, setEntrevistas] = useState<Entrevista[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -94,6 +101,14 @@ export function CandidataEntrevistas({ candidataId }: { candidataId: string }) {
                   </div>
                   <p className="text-sm text-muted-foreground">{formatDateTime(ent.data_hora)}</p>
                   {ent.observacoes && <p className="text-sm">{ent.observacoes}</p>}
+                  <div className="mt-2">
+                    <GoogleCalendarLink
+                      candidataNome={candidataNome || ''}
+                      cargo={ent.expand?.vaga?.cargo || ''}
+                      dataHora={ent.data_hora}
+                      observacoes={ent.observacoes}
+                    />
+                  </div>
                 </div>
                 <div className="flex gap-1">
                   <Button

@@ -230,7 +230,7 @@ export default function CandidataProfile() {
         candidataId={id!}
         referencia={editingRef}
       />
-      <CandidataEntrevistas candidataId={id!} />
+      <CandidataEntrevistas candidataId={id!} candidataNome={candidata.nome} />
       <CandidataOnboarding candidataId={id!} />
       <ManualCommunicationDialog open={commOpen} onOpenChange={setCommOpen} candidataId={id!} />
     </div>

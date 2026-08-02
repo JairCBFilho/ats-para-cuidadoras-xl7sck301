@@ -23,12 +23,14 @@ interface Props {
 export function TemplateEditor({ etapa, canal, template, onSaved }: Props) {
   const [assunto, setAssunto] = useState('')
   const [corpo, setCorpo] = useState('')
+  const [anexoFile, setAnexoFile] = useState<File | null>(null)
   const [errors, setErrors] = useState<FieldErrors>({})
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     setAssunto(template?.assunto || '')
     setCorpo(template?.corpo || '')
+    setAnexoFile(null)
     setErrors({})
   }, [template])
 
@@ -43,9 +45,10 @@ export function TemplateEditor({ etapa, canal, template, onSaved }: Props) {
       const data: EmailTemplateInput = {
         etapa,
         canal,
-        assunto: canal === 'email' ? assunto : '',
+        assunto: canal === 'email' ? assunto : etapa,
         corpo,
       }
+      if (anexoFile) data.anexo = anexoFile
       if (template) await updateEmailTemplate(template.id, data)
       else await createEmailTemplate(data)
       toast.success(`Template de ${etapa} (${canal}) salvo!`)
@@ -77,6 +80,15 @@ export function TemplateEditor({ etapa, canal, template, onSaved }: Props) {
         />
         {errors.corpo && <p className="mt-1 text-sm text-destructive">{errors.corpo}</p>}
       </div>
+      {canal === 'email' && (
+        <div>
+          <Label>Anexo (opcional)</Label>
+          <Input type="file" onChange={(e) => setAnexoFile(e.target.files?.[0] || null)} />
+          {template?.anexo && !anexoFile && (
+            <p className="mt-1 text-xs text-muted-foreground">Anexo atual: {template.anexo}</p>
+          )}
+        </div>
+      )}
       <Button onClick={handleSave} disabled={saving} size="sm">
         {saving ? (
           <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />

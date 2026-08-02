@@ -5,12 +5,14 @@ import { VagaFormDialog } from '@/components/vaga-form-dialog'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Pencil, MapPin, Clock } from 'lucide-react'
+import { Plus, Pencil, MapPin, Clock, Users } from 'lucide-react'
+import { VagaApplicationsDialog } from '@/components/VagaApplicationsDialog'
 
 export default function Vagas() {
   const [vagas, setVagas] = useState<Vaga[]>([])
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<Vaga | null>(null)
+  const [appsVaga, setAppsVaga] = useState<Vaga | null>(null)
 
   const load = useCallback(async () => {
     try {
@@ -84,6 +86,14 @@ export default function Vagas() {
                 <Badge variant={vaga.status === 'aberta' ? 'default' : 'secondary'}>
                   {vaga.status === 'aberta' ? 'Aberta' : 'Fechada'}
                 </Badge>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => setAppsVaga(vaga)}
+                >
+                  <Users className="mr-2 h-3.5 w-3.5" /> Ver candidatas
+                </Button>
               </CardContent>
             </Card>
           ))}
@@ -95,6 +105,13 @@ export default function Vagas() {
         vaga={editing}
         onSaved={load}
       />
+      {appsVaga && (
+        <VagaApplicationsDialog
+          vaga={appsVaga}
+          open={!!appsVaga}
+          onOpenChange={(o) => !o && setAppsVaga(null)}
+        />
+      )}
     </div>
   )
 }
