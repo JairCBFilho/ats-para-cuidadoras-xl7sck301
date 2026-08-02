@@ -7,6 +7,7 @@ export interface Application {
   vaga: string
   candidata: string
   etapa: Etapa
+  compatibilidade?: number
   created: string
   updated: string
 }
@@ -32,4 +33,9 @@ export const getApplicationsByCandidata = (candidataId: string) =>
   pb.collection('applications').getFullList<Application>({
     filter: `candidata = "${candidataId}"`,
     expand: 'vaga,candidata',
+  })
+
+export const getApplicationsByVaga = (vagaId: string) =>
+  pb.collection('applications').getFullList<Application>({
+    filter: `vaga = "${vagaId}"`,
   })

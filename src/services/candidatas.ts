@@ -11,19 +11,22 @@ export interface Candidata {
   experiencia: string
   telefone: string
   origem: string
+  foto: string
   created: string
   updated: string
 }
+
+export type CandidataInput = Omit<Partial<Candidata>, 'foto'> & { foto?: File | null }
 
 export const getCandidatas = () =>
   pb.collection('candidatas').getFullList<Candidata>({ sort: '-created' })
 
 export const getCandidata = (id: string) => pb.collection('candidatas').getOne<Candidata>(id)
 
-export const createCandidata = (data: Partial<Candidata>) =>
-  pb.collection('candidatas').create<Candidata>(data)
+export const createCandidata = (data: CandidataInput) =>
+  pb.collection('candidatas').create<Candidata>(data as Record<string, unknown>)
 
-export const updateCandidata = (id: string, data: Partial<Candidata>) =>
-  pb.collection('candidatas').update<Candidata>(id, data)
+export const updateCandidata = (id: string, data: CandidataInput) =>
+  pb.collection('candidatas').update<Candidata>(id, data as Record<string, unknown>)
 
 export const deleteCandidata = (id: string) => pb.collection('candidatas').delete(id)

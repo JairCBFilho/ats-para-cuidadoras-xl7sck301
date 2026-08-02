@@ -1,6 +1,12 @@
 import { useState, useEffect } from 'react'
-import { createCandidata, updateCandidata, type Candidata } from '@/services/candidatas'
+import {
+  createCandidata,
+  updateCandidata,
+  type Candidata,
+  type CandidataInput,
+} from '@/services/candidatas'
 import { extractFieldErrors, type FieldErrors } from '@/lib/pocketbase/errors'
+import { FotoUpload } from '@/components/foto-upload'
 import {
   Dialog,
   DialogContent,
@@ -44,6 +50,8 @@ export function CandidataFormDialog({ open, onOpenChange, candidata, onSaved }: 
   const [form, setForm] = useState(defaultForm)
   const [errors, setErrors] = useState<FieldErrors>({})
   const [saving, setSaving] = useState(false)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [fotoRemoved, setFotoRemoved] = useState(false)
 
   useEffect(() => {
     if (open) {
@@ -61,6 +69,8 @@ export function CandidataFormDialog({ open, onOpenChange, candidata, onSaved }: 
           : defaultForm,
       )
       setErrors({})
+      setSelectedFile(null)
+      setFotoRemoved(false)
     }
   }, [open, candidata])
 
@@ -76,11 +86,18 @@ export function CandidataFormDialog({ open, onOpenChange, candidata, onSaved }: 
 
     setSaving(true)
     try {
+      const data: CandidataInput = { ...form }
+      if (selectedFile) {
+        data.foto = selectedFile
+      } else if (fotoRemoved) {
+        data.foto = null
+      }
+
       if (candidata) {
-        await updateCandidata(candidata.id, form)
+        await updateCandidata(candidata.id, data)
         toast.success('Candidata atualizada com sucesso!')
       } else {
-        await createCandidata(form)
+        await createCandidata(data)
         toast.success('Candidata criada com sucesso!')
       }
       onOpenChange(false)
@@ -100,6 +117,14 @@ export function CandidataFormDialog({ open, onOpenChange, candidata, onSaved }: 
           <DialogTitle>{candidata ? 'Editar Candidata' : 'Nova Candidata'}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
+          <FotoUpload
+            record={candidata}
+            foto={candidata?.foto}
+            onChange={(file) => {
+              setSelectedFile(file)
+              setFotoRemoved(!file)
+            }}
+          />
           <div>
             <Label htmlFor="nome">Nome *</Label>
             <Input

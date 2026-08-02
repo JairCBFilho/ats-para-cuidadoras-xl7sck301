@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-02T22:24:11.419Z",
+  "generatedAt": "2026-08-02T22:48:04.695Z",
   "collections": [
     {
       "name": "users",
@@ -171,6 +171,12 @@
           "required": false,
           "system": false,
           "selectValues": ["Indicação", "LinkedIn", "Instagram", "Site", "WhatsApp", "Outro"]
+        },
+        {
+          "name": "foto",
+          "type": "file",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": ["CREATE INDEX `idx_candidatas_origem` ON `candidatas` (origem)"]
@@ -220,12 +226,19 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "compatibilidade",
+          "type": "number",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
         "CREATE INDEX idx_applications_vaga ON applications (vaga)",
         "CREATE INDEX idx_applications_candidata ON applications (candidata)",
-        "CREATE INDEX idx_applications_etapa ON applications (etapa)"
+        "CREATE INDEX idx_applications_etapa ON applications (etapa)",
+        "CREATE INDEX `idx_applications_compatibilidade` ON `applications` (compatibilidade)"
       ]
     },
     {
@@ -354,6 +367,53 @@
         "CREATE INDEX idx_onboarding_candidata ON onboarding (candidata)",
         "CREATE INDEX idx_onboarding_status ON onboarding (status)"
       ]
+    },
+    {
+      "name": "email_templates",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "etapa",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["Triagem", "Entrevista", "Aprovada", "Rejeitada"]
+        },
+        {
+          "name": "assunto",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "corpo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE UNIQUE INDEX idx_email_templates_etapa ON email_templates (etapa)"]
     }
   ]
 }

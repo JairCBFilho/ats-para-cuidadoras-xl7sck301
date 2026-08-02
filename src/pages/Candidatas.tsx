@@ -1,63 +1,40 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, Pencil, User, Trash2 } from 'lucide-react'
+import { Plus, Pencil, Trash2, User, SlidersHorizontal } from 'lucide-react'
 import { useRealtime } from '@/hooks/use-realtime'
-import {
-  getCandidatas,
-  createCandidata,
-  updateCandidata,
-  deleteCandidata,
-  type Candidata,
-} from '@/services/candidatas'
+import { getCandidatas, deleteCandidata, type Candidata } from '@/services/candidatas'
+import { getVagas, type Vaga } from '@/services/vagas'
+import { getApplicationsByVaga } from '@/services/applications'
+import { CandidataFormDialog } from '@/components/candidata-form-dialog'
+import { CandidataPhoto } from '@/components/candidata-photo'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog'
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from '@/components/ui/table'
 import { Card, CardContent } from '@/components/ui/card'
-import { extractFieldErrors, getErrorMessage, type FieldErrors } from '@/lib/pocketbase/errors'
+import { Badge } from '@/components/ui/badge'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { toast } from 'sonner'
-
-function translateError(msg: string): string {
-  const m = msg.toLowerCase()
-  if (m.includes('required') || m.includes('missing') || m.includes('blank'))
-    return 'Este campo é obrigatório.'
-  if (m.includes('email')) return 'Informe um e-mail válido.'
-  return msg
-}
+import { getErrorMessage } from '@/lib/pocketbase/errors'
 
 export default function Candidatas() {
   const [candidatas, setCandidatas] = useState<Candidata[]>([])
+  const [vagas, setVagas] = useState<Vaga[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<Candidata | null>(null)
-  const [formData, setFormData] = useState({
-    nome: '',
-    email: '',
-    formacao: '',
-    localizacao: '',
-    experiencia: '',
-  })
-  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
-  const [saving, setSaving] = useState(false)
+  const [selectedVaga, setSelectedVaga] = useState('')
+  const [sortByMatch, setSortByMatch] = useState(false)
+  const [compatMap, setCompatMap] = useState<Record<string, number | undefined>>({})
 
   const loadData = async () => {
     try {
-      const data = await getCandidatas()
+      const [data, v] = await Promise.all([getCandidatas(), getVagas()])
       setCandidatas(data)
+      setVagas(v)
     } catch (err) {
       toast.error(getErrorMessage(err))
     } finally {
@@ -65,52 +42,40 @@ export default function Candidatas() {
     }
   }
 
+  const loadCompat = async () => {
+    if (!selectedVaga) {
+      setCompatMap({})
+      return
+    }
+    try {
+      const apps = await getApplicationsByVaga(selectedVaga)
+      const map: Record<string, number | undefined> = {}
+      apps.forEach((a) => {
+        map[a.candidata] = a.compatibilidade
+      })
+      setCompatMap(map)
+    } catch {
+      /* ignore */
+    }
+  }
+
   useEffect(() => {
     loadData()
   }, [])
-  useRealtime('candidatas', () => {
-    loadData()
+  useEffect(() => {
+    loadCompat()
+  }, [selectedVaga])
+  useRealtime('candidatas', () => loadData())
+  useRealtime('applications', () => {
+    if (selectedVaga) loadCompat()
   })
 
-  const openCreate = () => {
-    setEditing(null)
-    setFormData({ nome: '', email: '', formacao: '', localizacao: '', experiencia: '' })
-    setFieldErrors({})
-    setDialogOpen(true)
-  }
-
-  const openEdit = (c: Candidata) => {
-    setEditing(c)
-    setFormData({
-      nome: c.nome,
-      email: c.email,
-      formacao: c.formacao || '',
-      localizacao: c.localizacao || '',
-      experiencia: c.experiencia || '',
-    })
-    setFieldErrors({})
-    setDialogOpen(true)
-  }
-
-  const handleSubmit = async () => {
-    setSaving(true)
-    setFieldErrors({})
-    try {
-      if (editing) {
-        await updateCandidata(editing.id, formData)
-        toast.success('Candidata atualizada com sucesso!')
-      } else {
-        await createCandidata(formData)
-        toast.success('Candidata criada com sucesso!')
-      }
-      setDialogOpen(false)
-    } catch (err) {
-      setFieldErrors(extractFieldErrors(err))
-      toast.error(getErrorMessage(err))
-    } finally {
-      setSaving(false)
+  const sorted = useMemo(() => {
+    if (sortByMatch && selectedVaga) {
+      return [...candidatas].sort((a, b) => (compatMap[b.id] ?? -1) - (compatMap[a.id] ?? -1))
     }
-  }
+    return candidatas
+  }, [candidatas, sortByMatch, selectedVaga, compatMap])
 
   const handleDelete = async (id: string) => {
     if (!confirm('Deseja realmente excluir esta candidata?')) return
@@ -124,132 +89,114 @@ export default function Candidatas() {
 
   return (
     <div className="space-y-6 p-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-2xl font-bold">Candidatas</h1>
-        <Button onClick={openCreate}>
+        <Button
+          onClick={() => {
+            setEditing(null)
+            setDialogOpen(true)
+          }}
+        >
           <Plus className="mr-2 h-4 w-4" /> Nova Candidata
         </Button>
       </div>
 
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>E-mail</TableHead>
-                <TableHead>Formação</TableHead>
-                <TableHead>Localização</TableHead>
-                <TableHead className="w-[120px]">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground">
-                    Carregando...
-                  </TableCell>
-                </TableRow>
-              ) : candidatas.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground">
-                    Nenhuma candidata cadastrada.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                candidatas.map((c) => (
-                  <TableRow key={c.id}>
-                    <TableCell className="font-medium">{c.nome}</TableCell>
-                    <TableCell>{c.email}</TableCell>
-                    <TableCell>{c.formacao || '-'}</TableCell>
-                    <TableCell>{c.localizacao || '-'}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="icon" asChild>
-                          <Link to={`/candidatas/${c.id}`}>
-                            <User className="h-4 w-4" />
-                          </Link>
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(c)}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDelete(c.id)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      <div className="flex flex-wrap items-center gap-4">
+        <div className="w-64">
+          <Select value={selectedVaga || undefined} onValueChange={setSelectedVaga}>
+            <SelectTrigger>
+              <SelectValue placeholder="Filtrar por vaga" />
+            </SelectTrigger>
+            <SelectContent>
+              {vagas.map((v) => (
+                <SelectItem key={v.id} value={v.id}>
+                  {v.cargo}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        {selectedVaga && (
+          <Button
+            variant={sortByMatch ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setSortByMatch(!sortByMatch)}
+          >
+            <SlidersHorizontal className="mr-2 h-4 w-4" /> Melhor match
+          </Button>
+        )}
+      </div>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{editing ? 'Editar Candidata' : 'Nova Candidata'}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="nome">Nome *</Label>
-              <Input
-                id="nome"
-                value={formData.nome}
-                onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-              />
-              {fieldErrors.nome && (
-                <p className="text-sm text-red-500">{translateError(fieldErrors.nome)}</p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">E-mail *</Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              />
-              {fieldErrors.email && (
-                <p className="text-sm text-red-500">{translateError(fieldErrors.email)}</p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="formacao">Formação</Label>
-              <Input
-                id="formacao"
-                value={formData.formacao}
-                onChange={(e) => setFormData({ ...formData, formacao: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="localizacao">Localização</Label>
-              <Input
-                id="localizacao"
-                value={formData.localizacao}
-                onChange={(e) => setFormData({ ...formData, localizacao: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="experiencia">Experiência</Label>
-              <Input
-                id="experiencia"
-                value={formData.experiencia}
-                onChange={(e) => setFormData({ ...formData, experiencia: e.target.value })}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSubmit} disabled={saving}>
-              {saving ? 'Salvando...' : 'Salvar'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {loading ? (
+        <p className="text-center text-muted-foreground py-8">Carregando...</p>
+      ) : sorted.length === 0 ? (
+        <Card>
+          <CardContent className="py-8 text-center text-muted-foreground">
+            Nenhuma candidata cadastrada.
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {sorted.map((c) => {
+            const score = compatMap[c.id]
+            return (
+              <Card key={c.id} className="overflow-hidden hover:shadow-md transition-shadow">
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-start gap-3">
+                    <CandidataPhoto candidata={c} className="h-12 w-12" />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{c.nome}</p>
+                      <p className="text-sm text-muted-foreground truncate">{c.email}</p>
+                      {c.localizacao && (
+                        <p className="text-xs text-muted-foreground truncate">{c.localizacao}</p>
+                      )}
+                    </div>
+                  </div>
+                  {selectedVaga && (
+                    <div className="flex items-center justify-between border-t pt-2">
+                      <span className="text-xs text-muted-foreground">
+                        Grau de compatibilidade:
+                      </span>
+                      {score !== undefined ? (
+                        <Badge variant={score >= 70 ? 'default' : 'secondary'}>{score}%</Badge>
+                      ) : (
+                        <Badge variant="outline">—</Badge>
+                      )}
+                    </div>
+                  )}
+                  <div className="flex justify-end gap-1">
+                    <Button variant="ghost" size="icon" asChild>
+                      <Link to={`/candidatas/${c.id}`}>
+                        <User className="h-4 w-4" />
+                      </Link>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        setEditing(c)
+                        setDialogOpen(true)
+                      }}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" onClick={() => handleDelete(c.id)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          })}
+        </div>
+      )}
+
+      <CandidataFormDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        candidata={editing}
+        onSaved={loadData}
+      />
     </div>
   )
 }
