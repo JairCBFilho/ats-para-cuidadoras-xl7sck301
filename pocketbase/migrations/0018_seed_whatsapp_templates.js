@@ -36,7 +36,7 @@ migrate(
       var record = new Record(col)
       record.set('etapa', t.etapa)
       record.set('canal', 'whatsapp')
-      record.set('assunto', '')
+      record.set('assunto', 'WhatsApp: ' + t.etapa)
       record.set('corpo', t.mensagem)
       app.save(record)
     }
