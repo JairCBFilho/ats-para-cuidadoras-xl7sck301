@@ -27,3 +27,9 @@ export const updateApplication = (id: string, data: Partial<Application>) =>
   pb.collection('applications').update<Application>(id, data)
 
 export const deleteApplication = (id: string) => pb.collection('applications').delete(id)
+
+export const getApplicationsByCandidata = (candidataId: string) =>
+  pb.collection('applications').getFullList<Application>({
+    filter: `candidata = "${candidataId}"`,
+    expand: 'vaga,candidata',
+  })

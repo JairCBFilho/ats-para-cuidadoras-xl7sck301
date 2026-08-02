@@ -1,5 +1,7 @@
 import pb from '@/lib/pocketbase/client'
 
+export type OrigemCandidata = 'Indicação' | 'LinkedIn' | 'Instagram' | 'Site' | 'WhatsApp' | 'Outro'
+
 export interface Candidata {
   id: string
   nome: string
@@ -7,6 +9,8 @@ export interface Candidata {
   formacao: string
   localizacao: string
   experiencia: string
+  telefone: string
+  origem: string
   created: string
   updated: string
 }

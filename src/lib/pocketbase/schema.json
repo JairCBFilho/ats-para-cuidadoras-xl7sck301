@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-02T22:03:30.541Z",
+  "generatedAt": "2026-08-02T22:24:11.419Z",
   "collections": [
     {
       "name": "users",
@@ -158,9 +158,22 @@
           "type": "email",
           "required": true,
           "system": false
+        },
+        {
+          "name": "telefone",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "origem",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Indicação", "LinkedIn", "Instagram", "Site", "WhatsApp", "Outro"]
         }
       ],
-      "indexes": []
+      "indexes": ["CREATE INDEX `idx_candidatas_origem` ON `candidatas` (origem)"]
     },
     {
       "name": "applications",
@@ -282,6 +295,64 @@
       "indexes": [
         "CREATE INDEX idx_referencias_candidata ON referencias (candidata)",
         "CREATE INDEX idx_referencias_status ON referencias (status)"
+      ]
+    },
+    {
+      "name": "onboarding",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "candidata",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "candidatas"
+        },
+        {
+          "name": "tarefa",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "categoria",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["Documentação", "Treinamento", "Contrato", "Outro"]
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["pendente", "concluida"]
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_onboarding_candidata ON onboarding (candidata)",
+        "CREATE INDEX idx_onboarding_status ON onboarding (status)"
       ]
     }
   ]

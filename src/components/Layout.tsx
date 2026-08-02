@@ -1,6 +1,15 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
-import { LayoutDashboard, Briefcase, Users, KanbanSquare, Heart, Menu, LogOut } from 'lucide-react'
+import {
+  LayoutDashboard,
+  Briefcase,
+  Users,
+  KanbanSquare,
+  Heart,
+  Menu,
+  LogOut,
+  BarChart3,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
@@ -12,6 +21,7 @@ const navItems = [
   { to: '/vagas', label: 'Vagas', icon: Briefcase },
   { to: '/candidatas', label: 'Candidatas', icon: Users },
   { to: '/funil', label: 'Funil', icon: KanbanSquare },
+  { to: '/relatorios', label: 'Relatórios', icon: BarChart3 },
 ]
 
 function NavLinks({ onNavigate }: { onNavigate?: () => void }) {

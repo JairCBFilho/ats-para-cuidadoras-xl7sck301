@@ -1,6 +1,15 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, Plus, Pencil, Trash2, Mail, MapPin, BookOpen } from 'lucide-react'
+import {
+  ArrowLeft,
+  Plus,
+  Pencil,
+  Trash2,
+  Mail,
+  MapPin,
+  BookOpen,
+  MessageCircle,
+} from 'lucide-react'
 import { useRealtime } from '@/hooks/use-realtime'
 import { getCandidata, type Candidata } from '@/services/candidatas'
 import {
@@ -10,6 +19,7 @@ import {
   type StatusReferencia,
 } from '@/services/referencias'
 import { ReferenciaDialog } from '@/components/ReferenciaDialog'
+import { CandidataOnboarding } from '@/components/CandidataOnboarding'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -85,6 +95,19 @@ export default function CandidataProfile() {
           <div className="flex items-center gap-2 text-sm">
             <Mail className="h-4 w-4 text-muted-foreground" /> {candidata.email}
           </div>
+          {candidata.telefone ? (
+            <a
+              href={`https://wa.me/${candidata.telefone.replace(/[^\d]/g, '')}?text=${encodeURIComponent(`Olá ${candidata.nome}, tudo bem? Estamos entrando em contato pelo CuidarATS para falar sobre o seu processo seletivo.`)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Button variant="outline" size="sm">
+                <MessageCircle className="mr-2 h-4 w-4" /> Enviar WhatsApp
+              </Button>
+            </a>
+          ) : (
+            <p className="text-xs text-muted-foreground">Telefone não informado</p>
+          )}
           {candidata.formacao && (
             <div className="flex items-center gap-2 text-sm">
               <BookOpen className="h-4 w-4 text-muted-foreground" /> {candidata.formacao}
@@ -168,6 +191,8 @@ export default function CandidataProfile() {
         candidataId={id!}
         referencia={editingRef}
       />
+
+      <CandidataOnboarding candidataId={id!} />
     </div>
   )
 }
