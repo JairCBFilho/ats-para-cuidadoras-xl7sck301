@@ -20,6 +20,7 @@ import {
 } from '@/services/referencias'
 import { ReferenciaDialog } from '@/components/ReferenciaDialog'
 import { CandidataOnboarding } from '@/components/CandidataOnboarding'
+import { CompatibilidadeSection } from '@/components/CompatibilidadeSection'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -125,6 +126,8 @@ export default function CandidataProfile() {
           )}
         </CardContent>
       </Card>
+
+      <CompatibilidadeSection candidataId={id!} />
 
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold">Referências</h2>
