@@ -1,100 +1,255 @@
-import { useState, useEffect, useCallback } from 'react'
-import { getCandidatas, type Candidata } from '@/services/candidatas'
+import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
+import { Plus, Pencil, User, Trash2 } from 'lucide-react'
 import { useRealtime } from '@/hooks/use-realtime'
-import { CandidataFormDialog } from '@/components/candidata-form-dialog'
+import {
+  getCandidatas,
+  createCandidata,
+  updateCandidata,
+  deleteCandidata,
+  type Candidata,
+} from '@/services/candidatas'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Plus, Pencil, MapPin, GraduationCap } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '@/components/ui/table'
+import { Card, CardContent } from '@/components/ui/card'
+import { extractFieldErrors, getErrorMessage, type FieldErrors } from '@/lib/pocketbase/errors'
+import { toast } from 'sonner'
+
+function translateError(msg: string): string {
+  const m = msg.toLowerCase()
+  if (m.includes('required') || m.includes('missing') || m.includes('blank'))
+    return 'Este campo é obrigatório.'
+  if (m.includes('email')) return 'Informe um e-mail válido.'
+  return msg
+}
 
 export default function Candidatas() {
   const [candidatas, setCandidatas] = useState<Candidata[]>([])
+  const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<Candidata | null>(null)
+  const [formData, setFormData] = useState({
+    nome: '',
+    email: '',
+    formacao: '',
+    localizacao: '',
+    experiencia: '',
+  })
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
+  const [saving, setSaving] = useState(false)
 
-  const load = useCallback(async () => {
+  const loadData = async () => {
     try {
-      setCandidatas(await getCandidatas())
-    } catch {
-      /* ignore */
+      const data = await getCandidatas()
+      setCandidatas(data)
+    } catch (err) {
+      toast.error(getErrorMessage(err))
+    } finally {
+      setLoading(false)
     }
-  }, [])
+  }
 
   useEffect(() => {
-    load()
-  }, [load])
-  useRealtime('candidatas', () => load())
+    loadData()
+  }, [])
+  useRealtime('candidatas', () => {
+    loadData()
+  })
 
-  const openNew = () => {
+  const openCreate = () => {
     setEditing(null)
+    setFormData({ nome: '', email: '', formacao: '', localizacao: '', experiencia: '' })
+    setFieldErrors({})
     setDialogOpen(true)
   }
+
   const openEdit = (c: Candidata) => {
     setEditing(c)
+    setFormData({
+      nome: c.nome,
+      email: c.email,
+      formacao: c.formacao || '',
+      localizacao: c.localizacao || '',
+      experiencia: c.experiencia || '',
+    })
+    setFieldErrors({})
     setDialogOpen(true)
+  }
+
+  const handleSubmit = async () => {
+    setSaving(true)
+    setFieldErrors({})
+    try {
+      if (editing) {
+        await updateCandidata(editing.id, formData)
+        toast.success('Candidata atualizada com sucesso!')
+      } else {
+        await createCandidata(formData)
+        toast.success('Candidata criada com sucesso!')
+      }
+      setDialogOpen(false)
+    } catch (err) {
+      setFieldErrors(extractFieldErrors(err))
+      toast.error(getErrorMessage(err))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Deseja realmente excluir esta candidata?')) return
+    try {
+      await deleteCandidata(id)
+      toast.success('Candidata excluída com sucesso!')
+    } catch (err) {
+      toast.error(getErrorMessage(err))
+    }
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Candidatas</h1>
-          <p className="text-muted-foreground">Gerencie as candidatas a cuidadoras</p>
-        </div>
-        <Button onClick={openNew}>
-          <Plus className="mr-2 h-4 w-4" />
-          Nova Candidata
+        <h1 className="text-2xl font-bold">Candidatas</h1>
+        <Button onClick={openCreate}>
+          <Plus className="mr-2 h-4 w-4" /> Nova Candidata
         </Button>
       </div>
-      {candidatas.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center text-muted-foreground">
-            Nenhuma candidata cadastrada. Clique em "Nova Candidata" para começar.
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {candidatas.map((c) => (
-            <Card key={c.id} className="animate-fade-in-up">
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <CardTitle className="text-base">{c.nome}</CardTitle>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7"
-                    onClick={() => openEdit(c)}
-                  >
-                    <Pencil className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {c.formacao && (
-                  <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                    <GraduationCap className="h-3.5 w-3.5" />
-                    {c.formacao}
-                  </p>
-                )}
-                {c.localizacao && (
-                  <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                    <MapPin className="h-3.5 w-3.5" />
-                    {c.localizacao}
-                  </p>
-                )}
-                {c.experiencia && (
-                  <p className="text-sm text-muted-foreground line-clamp-2">{c.experiencia}</p>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-      <CandidataFormDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        candidata={editing}
-        onSaved={load}
-      />
+
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nome</TableHead>
+                <TableHead>E-mail</TableHead>
+                <TableHead>Formação</TableHead>
+                <TableHead>Localização</TableHead>
+                <TableHead className="w-[120px]">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center text-muted-foreground">
+                    Carregando...
+                  </TableCell>
+                </TableRow>
+              ) : candidatas.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center text-muted-foreground">
+                    Nenhuma candidata cadastrada.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                candidatas.map((c) => (
+                  <TableRow key={c.id}>
+                    <TableCell className="font-medium">{c.nome}</TableCell>
+                    <TableCell>{c.email}</TableCell>
+                    <TableCell>{c.formacao || '-'}</TableCell>
+                    <TableCell>{c.localizacao || '-'}</TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="icon" asChild>
+                          <Link to={`/candidatas/${c.id}`}>
+                            <User className="h-4 w-4" />
+                          </Link>
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => openEdit(c)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleDelete(c.id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editing ? 'Editar Candidata' : 'Nova Candidata'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="nome">Nome *</Label>
+              <Input
+                id="nome"
+                value={formData.nome}
+                onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+              />
+              {fieldErrors.nome && (
+                <p className="text-sm text-red-500">{translateError(fieldErrors.nome)}</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">E-mail *</Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              />
+              {fieldErrors.email && (
+                <p className="text-sm text-red-500">{translateError(fieldErrors.email)}</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="formacao">Formação</Label>
+              <Input
+                id="formacao"
+                value={formData.formacao}
+                onChange={(e) => setFormData({ ...formData, formacao: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="localizacao">Localização</Label>
+              <Input
+                id="localizacao"
+                value={formData.localizacao}
+                onChange={(e) => setFormData({ ...formData, localizacao: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="experiencia">Experiência</Label>
+              <Input
+                id="experiencia"
+                value={formData.experiencia}
+                onChange={(e) => setFormData({ ...formData, experiencia: e.target.value })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSubmit} disabled={saving}>
+              {saving ? 'Salvando...' : 'Salvar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

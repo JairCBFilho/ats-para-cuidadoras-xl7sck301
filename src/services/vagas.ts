@@ -4,9 +4,9 @@ export interface Vaga {
   id: string
   cargo: string
   localizacao: string
-  turno: string
+  turno: '12h' | '24h'
   requisitos: string
-  status: string
+  status: 'aberta' | 'fechada'
   created: string
   updated: string
 }

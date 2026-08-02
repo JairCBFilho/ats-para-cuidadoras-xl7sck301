@@ -1,18 +1,14 @@
 import pb from '@/lib/pocketbase/client'
-import type { Vaga } from '@/services/vagas'
-import type { Candidata } from '@/services/candidatas'
+
+export type Etapa = 'Triagem' | 'Entrevista' | 'Aprovada' | 'Rejeitada'
 
 export interface Application {
   id: string
   vaga: string
   candidata: string
-  etapa: string
+  etapa: Etapa
   created: string
   updated: string
-  expand?: {
-    vaga?: Vaga
-    candidata?: Candidata
-  }
 }
 
 export const getApplications = () =>
@@ -21,10 +17,13 @@ export const getApplications = () =>
     expand: 'vaga,candidata',
   })
 
-export const createApplication = (data: { vaga: string; candidata: string; etapa: string }) =>
+export const getApplication = (id: string) =>
+  pb.collection('applications').getOne<Application>(id, { expand: 'vaga,candidata' })
+
+export const createApplication = (data: Partial<Application>) =>
   pb.collection('applications').create<Application>(data)
 
-export const updateApplication = (id: string, data: Partial<{ etapa: string }>) =>
+export const updateApplication = (id: string, data: Partial<Application>) =>
   pb.collection('applications').update<Application>(id, data)
 
 export const deleteApplication = (id: string) => pb.collection('applications').delete(id)

@@ -3,6 +3,7 @@ import pb from '@/lib/pocketbase/client'
 export interface Candidata {
   id: string
   nome: string
+  email: string
   formacao: string
   localizacao: string
   experiencia: string

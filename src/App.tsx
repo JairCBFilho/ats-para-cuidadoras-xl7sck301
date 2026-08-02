@@ -9,6 +9,7 @@ import Index from '@/pages/Index'
 import Vagas from '@/pages/Vagas'
 import Candidatas from '@/pages/Candidatas'
 import Funil from '@/pages/Funil'
+import CandidataProfile from '@/pages/CandidataProfile'
 import Login from '@/pages/Login'
 import Signup from '@/pages/Signup'
 import NotFound from '@/pages/NotFound'
@@ -27,6 +28,7 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/vagas" element={<Vagas />} />
               <Route path="/candidatas" element={<Candidatas />} />
+              <Route path="/candidatas/:id" element={<CandidataProfile />} />
               <Route path="/funil" element={<Funil />} />
             </Route>
           </Route>
