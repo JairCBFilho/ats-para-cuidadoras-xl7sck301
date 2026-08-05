@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Plus, Pencil, MapPin, Clock, Users } from 'lucide-react'
 import { VagaApplicationsDialog } from '@/components/VagaApplicationsDialog'
+import { PreselecionarButton } from '@/components/PreselecionarButton'
 
 export default function Vagas() {
   const [vagas, setVagas] = useState<Vaga[]>([])
@@ -86,14 +87,17 @@ export default function Vagas() {
                 <Badge variant={vaga.status === 'aberta' ? 'default' : 'secondary'}>
                   {vaga.status === 'aberta' ? 'Aberta' : 'Fechada'}
                 </Badge>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                  onClick={() => setAppsVaga(vaga)}
-                >
-                  <Users className="mr-2 h-3.5 w-3.5" /> Ver candidatas
-                </Button>
+                <div className="space-y-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => setAppsVaga(vaga)}
+                  >
+                    <Users className="mr-2 h-3.5 w-3.5" /> Ver candidatas
+                  </Button>
+                  <PreselecionarButton vagaId={vaga.id} onCompleted={load} />
+                </div>
               </CardContent>
             </Card>
           ))}
