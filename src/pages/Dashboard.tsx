@@ -85,15 +85,35 @@ export default function Dashboard() {
   const totalTalentos = cuidadores.length
   const talentosDisponiveis = cuidadores.filter((c) => c.disponibilidade === 'disponível').length
 
-  // Top 5 cidades
-  const cidadesStats: Record<string, number> = {}
+  // Top 5 cidades — agrupamento case-insensitive, com nome normalizado para exibição.
+  // Primeira letra de cada palavra em maiúscula (ex: "rio de janeiro" -> "Rio de Janeiro").
+  const normalizeCidade = (raw: string): string => {
+    const trimmed = raw.trim().toLowerCase()
+    if (!trimmed) return ''
+    // Mantém conectivos comuns em minúsculas (de, da, do, das, dos, e).
+    const pequenas = new Set(['de', 'da', 'do', 'das', 'dos', 'e'])
+    return trimmed
+      .split(/\s+/)
+      .map((palavra, i) =>
+        i > 0 && pequenas.has(palavra)
+          ? palavra
+          : palavra.charAt(0).toUpperCase() + palavra.slice(1),
+      )
+      .join(' ')
+  }
+  // Conta por chave lowercase; guarda o nome normalizado para exibição.
+  const cidadesCount: Record<string, number> = {}
+  const cidadesNome: Record<string, string> = {}
   cuidadores.forEach((c) => {
-    const cidade = (c.cidade || '').trim()
-    if (cidade) cidadesStats[cidade] = (cidadesStats[cidade] || 0) + 1
+    const chave = (c.cidade || '').trim().toLowerCase()
+    if (!chave) return
+    cidadesCount[chave] = (cidadesCount[chave] || 0) + 1
+    if (!cidadesNome[chave]) cidadesNome[chave] = normalizeCidade(c.cidade || '')
   })
-  const topCidades = Object.entries(cidadesStats)
+  const topCidades = Object.entries(cidadesCount)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5)
+    .map(([chave, count]) => [cidadesNome[chave], count] as [string, number])
   const maxCidade = Math.max(...topCidades.map(([, n]) => n), 1)
 
   // Taxa de conversão: % de cuidadores com pelo menos uma candidatura
