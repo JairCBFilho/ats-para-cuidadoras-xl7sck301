@@ -6,11 +6,62 @@
 // Observacao: o JSVM do PocketBase nao expoe atob/btoa nem o pacote Buffer do Node.
 // O texto do PDF e extraido de forma simples a partir do binario (strings entre
 // parenteses dos operadores Tj/TJ) e enviado ao agente de IA.
+//
+// IMPORTANTE (scoping do JSVM): o PocketBase executa callbacks de routerAdd em um
+// pool de VMs separado do que registra o hook. Declaracoes de topo (function/var)
+// NAO sao acessiveis dentro do callback em runtime. Por isso TODA a logica —
+// incluindo as funcoes auxiliares base64Decode e extractPdfText — deve estar
+// inline dentro do corpo do callback.
 
 routerAdd(
   'POST',
   '/backend/v1/extract-curriculo',
   (e) => {
+    // Decodifica base64 para string binaria.
+    var base64Decode = function (b64) {
+      b64 = String(b64).replace(/[^A-Za-z0-9+/=]/g, '')
+      var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+      var str = ''
+      var i = 0
+      while (i < b64.length) {
+        var a = chars.indexOf(b64.charAt(i++))
+        var b = chars.indexOf(b64.charAt(i++))
+        var c = chars.indexOf(b64.charAt(i++))
+        var d = chars.indexOf(b64.charAt(i++))
+        var n = (a << 18) | (b << 12) | (c << 6) | d
+        str += String.fromCharCode((n >> 16) & 0xff)
+        if (c !== 64) str += String.fromCharCode((n >> 8) & 0xff)
+        if (d !== 64) str += String.fromCharCode(n & 0xff)
+      }
+      return str
+    }
+
+    // Extrai texto legivel do PDF (strings entre parenteses dos operadores Tj/TJ).
+    var extractPdfText = function (raw) {
+      var out = ''
+      var re = /\(((?:\\.|[^()\\])*)\)/g
+      var m
+      while ((m = re.exec(raw)) !== null) {
+        var s = m[1]
+        s = s
+          .replace(/\\n/g, '\n')
+          .replace(/\\r/g, '\r')
+          .replace(/\\t/g, '\t')
+          .replace(/\\\(/g, '(')
+          .replace(/\\\)/g, ')')
+          .replace(/\\\\/g, '\\')
+        if (s.length >= 1) {
+          var printable = 0
+          for (var i = 0; i < s.length; i++) {
+            var code = s.charCodeAt(i)
+            if ((code >= 32 && code < 127) || code === 10 || code === 13) printable++
+          }
+          if (printable / s.length > 0.5) out += s + ' '
+        }
+      }
+      return out.replace(/\s+/g, ' ').trim()
+    }
+
     var body = e.requestInfo().body || {}
     var contentB64 = body.content
     if (!contentB64) {
@@ -20,7 +71,6 @@ routerAdd(
     var userId = e.auth ? e.auth.id : ''
     if (!userId) return e.unauthorizedError('Autenticacao necessaria')
 
-    // Decodifica base64 para string binaria.
     var binaryStr = ''
     try {
       binaryStr = base64Decode(String(contentB64))
@@ -32,7 +82,6 @@ routerAdd(
       return e.json(400, { error: 'PDF invalido: conteudo vazio apos decodificacao' })
     }
 
-    // Extrai texto legivel do PDF.
     var extractedText = extractPdfText(binaryStr)
 
     if (!extractedText || extractedText.trim().length < 10) {
@@ -119,47 +168,3 @@ routerAdd(
   },
   $apis.requireAuth(),
 )
-
-function base64Decode(b64) {
-  b64 = String(b64).replace(/[^A-Za-z0-9+/=]/g, '')
-  var chars =
-    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
-  var str = ''
-  var i = 0
-  while (i < b64.length) {
-    var a = chars.indexOf(b64.charAt(i++))
-    var b = chars.indexOf(b64.charAt(i++))
-    var c = chars.indexOf(b64.charAt(i++))
-    var d = chars.indexOf(b64.charAt(i++))
-    var n = (a << 18) | (b << 12) | (c << 6) | d
-    str += String.fromCharCode((n >> 16) & 0xff)
-    if (c !== 64) str += String.fromCharCode((n >> 8) & 0xff)
-    if (d !== 64) str += String.fromCharCode(n & 0xff)
-  }
-  return str
-}
-
-function extractPdfText(raw) {
-  var out = ''
-  var re = /\(((?:\\.|[^()\\])*)\)/g
-  var m
-  while ((m = re.exec(raw)) !== null) {
-    var s = m[1]
-    s = s
-      .replace(/\\n/g, '\n')
-      .replace(/\\r/g, '\r')
-      .replace(/\\t/g, '\t')
-      .replace(/\\\(/g, '(')
-      .replace(/\\\)/g, ')')
-      .replace(/\\\\/g, '\\')
-    if (s.length >= 1) {
-      var printable = 0
-      for (var i = 0; i < s.length; i++) {
-        var code = s.charCodeAt(i)
-        if ((code >= 32 && code < 127) || code === 10 || code === 13) printable++
-      }
-      if (printable / s.length > 0.5) out += s + ' '
-    }
-  }
-  return out.replace(/\s+/g, ' ').trim()
-}
