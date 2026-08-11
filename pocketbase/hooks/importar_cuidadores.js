@@ -7,13 +7,12 @@ routerAdd(
     if (!userId) return e.unauthorizedError('Autenticacao necessaria')
 
     // Lê o CSV enviado como multipart/form-data no campo "file"
-    var fileInfo = e.requestInfo().uploadedFiles['file']
+    var uploadedFiles = e.requestInfo().uploadedFiles || {}
+    var fileInfo = uploadedFiles['file']
     if (!fileInfo) {
-      // fallback: tentar encontrar qualquer arquivo enviado
-      var uploaded = e.requestInfo().uploadedFiles || {}
-      var keys = Object.keys(uploaded)
+      var keys = Object.keys(uploadedFiles)
       if (keys.length > 0) {
-        fileInfo = uploaded[keys[0]]
+        fileInfo = uploadedFiles[keys[0]]
       }
     }
     if (!fileInfo) return e.badRequestError('Arquivo CSV nao enviado (campo "file")')
