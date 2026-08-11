@@ -8,7 +8,15 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
-import { Upload, FileText, Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
+import {
+  Upload,
+  FileText,
+  Loader2,
+  CheckCircle2,
+  AlertCircle,
+  ChevronDown,
+  ChevronUp,
+} from 'lucide-react'
 import pb from '@/lib/pocketbase/client'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -23,6 +31,12 @@ type Phase = 'idle' | 'preview' | 'importing' | 'done'
 
 interface PreviewRow {
   [key: string]: string
+}
+
+interface ImportError {
+  linha: number
+  nome: string
+  motivo: string
 }
 
 /**
@@ -153,6 +167,8 @@ export function ImportCsvDialog({ open, onOpenChange, onCompleted }: Props) {
   const [updated, setUpdated] = useState(0)
   const [errors, setErrors] = useState(0)
   const [currentName, setCurrentName] = useState('')
+  const [importErrors, setImportErrors] = useState<ImportError[]>([])
+  const [showErrors, setShowErrors] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const reset = () => {
@@ -166,6 +182,8 @@ export function ImportCsvDialog({ open, onOpenChange, onCompleted }: Props) {
     setUpdated(0)
     setErrors(0)
     setCurrentName('')
+    setImportErrors([])
+    setShowErrors(false)
   }
 
   const handleFile = useCallback(async (f: File) => {
@@ -203,6 +221,8 @@ export function ImportCsvDialog({ open, onOpenChange, onCompleted }: Props) {
     setUpdated(0)
     setErrors(0)
     setCurrentName('')
+    setImportErrors([])
+    setShowErrors(false)
 
     const content = await file.text()
 
@@ -248,6 +268,16 @@ export function ImportCsvDialog({ open, onOpenChange, onCompleted }: Props) {
               setUpdated(data.updated)
               setErrors(data.errors)
               setCurrentName(data.nome || '')
+              if (data.status === 'erro') {
+                setImportErrors((prev) => [
+                  ...prev,
+                  {
+                    linha: data.linha ?? data.current ?? 0,
+                    nome: data.nome ?? '',
+                    motivo: data.motivo ?? 'Erro desconhecido',
+                  },
+                ])
+              }
             } else if (data.type === 'done') {
               setInserted(data.inserted)
               setUpdated(data.updated)
@@ -423,13 +453,57 @@ export function ImportCsvDialog({ open, onOpenChange, onCompleted }: Props) {
                 <p className="text-xs text-muted-foreground">Erros</p>
               </div>
             </div>
-            {errors > 0 && (
-              <div className="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950/40 p-3">
-                <AlertCircle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
-                <p className="text-xs text-amber-900 dark:text-amber-200">
-                  {errors} linha(s) não puderam ser importadas. Verifique o log do servidor para
-                  detalhes. Linhas sem nome, e-mail e CPF são puladas automaticamente.
-                </p>
+            {errors > 0 && importErrors.length > 0 && (
+              <div className="rounded-lg border border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950/40 p-3 space-y-2">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                  <p className="text-xs text-amber-900 dark:text-amber-200">
+                    {errors} linha(s) não puderam ser importadas. Veja os detalhes abaixo.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => setShowErrors((v) => !v)}
+                >
+                  {showErrors ? (
+                    <>
+                      <ChevronUp className="mr-2 h-4 w-4" />
+                      Ocultar detalhes
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="mr-2 h-4 w-4" />
+                      Ver detalhes
+                    </>
+                  )}
+                </Button>
+                {showErrors && (
+                  <div className="overflow-x-auto rounded-lg border border-amber-200 dark:border-amber-800 max-h-64">
+                    <table className="w-full text-xs">
+                      <thead className="bg-amber-100 dark:bg-amber-950/60 sticky top-0">
+                        <tr>
+                          <th className="text-left p-2 font-medium whitespace-nowrap">Linha</th>
+                          <th className="text-left p-2 font-medium whitespace-nowrap">Nome</th>
+                          <th className="text-left p-2 font-medium">Motivo</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {importErrors.map((e, i) => (
+                          <tr key={i} className="border-t border-amber-200 dark:border-amber-800">
+                            <td className="p-2 align-top whitespace-nowrap">{e.linha || '—'}</td>
+                            <td className="p-2 align-top max-w-[160px] truncate">
+                              {e.nome || '—'}
+                            </td>
+                            <td className="p-2 align-top">{e.motivo || '—'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             )}
           </div>

@@ -339,7 +339,9 @@ routerAdd(
           inserted: inserted,
           updated: updated,
           errors: errors,
+          linha: i + 1,
           nome: '(linha vazia)',
+          motivo: 'Linha sem identificação (nome, e-mail, CPF, telefone ou celular em branco)',
           status: 'erro',
         })
         continue
@@ -552,9 +554,38 @@ routerAdd(
         else inserted++
       } catch (err) {
         errors++
+        var motivo = String(err)
+        // Tenta extrair mensagens claras a partir do erro do PocketBase
+        var lowerErr = motivo.toLowerCase()
+        if (lowerErr.indexOf('cpf') !== -1) {
+          motivo = 'CPF inválido ou duplicado'
+        } else if (lowerErr.indexOf('email') !== -1 && lowerErr.indexOf('unique') !== -1) {
+          motivo = 'E-mail duplicado'
+        } else if (lowerErr.indexOf('email') !== -1 && lowerErr.indexOf('validation') !== -1) {
+          motivo = 'E-mail inválido'
+        } else if (lowerErr.indexOf('nascimento') !== -1 || lowerErr.indexOf('data') !== -1) {
+          motivo = 'Data inválida'
+        } else if (lowerErr.indexOf('unique') !== -1) {
+          motivo = 'Registro duplicado'
+        } else if (lowerErr.indexOf('validation') !== -1) {
+          motivo = 'Falha de validação: ' + motivo
+        }
         $app
           .logger()
           .error('importar-cuidadores linha', 'line', i + 1, 'nome', nome, 'error', String(err))
+        send({
+          type: 'progress',
+          current: i + 1,
+          total: total,
+          inserted: inserted,
+          updated: updated,
+          errors: errors,
+          linha: i + 1,
+          nome: nome || '(sem nome)',
+          motivo: motivo,
+          status: 'erro',
+        })
+        continue
       }
 
       send({
