@@ -208,11 +208,15 @@ export function ImportCsvDialog({ open, onOpenChange, onCompleted }: Props) {
     formData.append('file', file)
 
     try {
+      const headers = new Headers()
+      headers.set('Authorization', `Bearer ${pb.authStore.token}`)
+      // Não definir Content-Type: o navegador define automaticamente
+      // multipart/form-data; boundary=... quando body é um FormData.
       const res = await fetch(
         `${import.meta.env.VITE_POCKETBASE_URL}/backend/v1/importar-cuidadores`,
         {
           method: 'POST',
-          headers: { Authorization: pb.authStore.token },
+          headers,
           body: formData,
         },
       )
