@@ -6,20 +6,14 @@ routerAdd(
     var userId = e.auth ? e.auth.id : ''
     if (!userId) return e.unauthorizedError('Autenticacao necessaria')
 
-    // Lê o CSV enviado como multipart/form-data no campo "file"
-    var uploadedFiles = e.requestInfo().uploadedFiles || {}
-    var fileInfo = uploadedFiles['file']
-    if (!fileInfo) {
-      var keys = Object.keys(uploadedFiles)
-      if (keys.length > 0) {
-        fileInfo = uploadedFiles[keys[0]]
-      }
+    // Lê o CSV enviado como JSON no campo "content"
+    var body = e.requestInfo().body || {}
+    var content = body.content
+    var filename = body.filename || 'upload.csv'
+    if (!content) {
+      return e.badRequestError('Conteudo CSV nao enviado (campo "content")')
     }
-    if (!fileInfo) return e.badRequestError('Arquivo CSV nao enviado (campo "file")')
-
-    // Lê o conteúdo do arquivo
-    var fs = $os.readFile(fileInfo.path)
-    var content = String(fs)
+    content = String(content)
 
     // Remove BOM se existir
     if (content.charCodeAt(0) === 0xfeff) content = content.slice(1)

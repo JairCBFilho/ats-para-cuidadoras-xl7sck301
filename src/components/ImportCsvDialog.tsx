@@ -204,20 +204,18 @@ export function ImportCsvDialog({ open, onOpenChange, onCompleted }: Props) {
     setErrors(0)
     setCurrentName('')
 
-    const formData = new FormData()
-    formData.append('file', file)
+    const content = await file.text()
 
     try {
       const headers = new Headers()
       headers.set('Authorization', `Bearer ${pb.authStore.token}`)
-      // Não definir Content-Type: o navegador define automaticamente
-      // multipart/form-data; boundary=... quando body é um FormData.
+      headers.set('Content-Type', 'application/json')
       const res = await fetch(
         `${import.meta.env.VITE_POCKETBASE_URL}/backend/v1/importar-cuidadores`,
         {
           method: 'POST',
           headers,
-          body: formData,
+          body: JSON.stringify({ content, filename: file.name }),
         },
       )
 
