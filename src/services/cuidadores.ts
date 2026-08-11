@@ -20,6 +20,31 @@ export interface Cuidador {
   disponibilidade: string
   especialidades: string
   turno: string
+  codigo: number
+  data_cadastro: string
+  data_contato: string
+  nascimento: string
+  endereco: string
+  bairro: string
+  cidade: string
+  uf: string
+  cep: string
+  celular: string
+  sexo: string
+  identidade: string
+  cpf: string
+  curso_cuidador: string
+  carga_horaria_curso: string
+  tempo_experiencia: string
+  referencias: string
+  outros_cursos_experiencias: string
+  experiencia_ilp: string
+  vacina_covid: string
+  restricao_fisica: string
+  disponibilidade_horario: string
+  inicio_imediato: string
+  certific: string
+  declaracao: string
   created: string
   updated: string
 }

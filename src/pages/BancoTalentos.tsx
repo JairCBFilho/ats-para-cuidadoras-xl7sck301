@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Plus, Pencil, Trash2, MapPin, Star, Clock } from 'lucide-react'
+import { Plus, Pencil, Trash2, MapPin, Star, Clock, Upload } from 'lucide-react'
+import { ImportCsvDialog } from '@/components/ImportCsvDialog'
 import { useRealtime } from '@/hooks/use-realtime'
 import { getCuidadores, deleteCuidador, type Cuidador } from '@/services/cuidadores'
 import { CuidadorFormDialog } from '@/components/cuidador-form-dialog'
@@ -37,6 +38,7 @@ export default function BancoTalentos() {
   const [filterDisp, setFilterDisp] = useState('all')
   const [filterEsp, setFilterEsp] = useState('')
   const [filterLoc, setFilterLoc] = useState('')
+  const [importOpen, setImportOpen] = useState(false)
 
   const loadData = async () => {
     try {
@@ -80,14 +82,19 @@ export default function BancoTalentos() {
           <h1 className="text-2xl font-bold">Banco de Talentos</h1>
           <p className="text-sm text-muted-foreground">Cuidadores disponíveis para pré-seleção</p>
         </div>
-        <Button
-          onClick={() => {
-            setEditing(null)
-            setDialogOpen(true)
-          }}
-        >
-          <Plus className="mr-2 h-4 w-4" /> Novo Cuidador
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setImportOpen(true)}>
+            <Upload className="mr-2 h-4 w-4" /> Importar CSV
+          </Button>
+          <Button
+            onClick={() => {
+              setEditing(null)
+              setDialogOpen(true)
+            }}
+          >
+            <Plus className="mr-2 h-4 w-4" /> Novo Cuidador
+          </Button>
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -187,6 +194,7 @@ export default function BancoTalentos() {
         cuidador={editing}
         onSaved={loadData}
       />
+      <ImportCsvDialog open={importOpen} onOpenChange={setImportOpen} onCompleted={loadData} />
     </div>
   )
 }
