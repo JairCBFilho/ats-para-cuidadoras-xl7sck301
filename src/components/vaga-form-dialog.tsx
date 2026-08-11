@@ -68,10 +68,18 @@ export function VagaFormDialog({ open, onOpenChange, vaga, onSaved }: Props) {
     setSaving(true)
     try {
       if (vaga) {
-        await updateVaga(vaga.id, form)
+        await updateVaga(vaga.id, {
+          ...form,
+          turno: form.turno as Vaga['turno'],
+          status: form.status as Vaga['status'],
+        })
         toast.success('Vaga atualizada com sucesso!')
       } else {
-        await createVaga(form)
+        await createVaga({
+          ...form,
+          turno: form.turno as Vaga['turno'],
+          status: form.status as Vaga['status'],
+        })
         toast.success('Vaga criada com sucesso!')
       }
       onOpenChange(false)

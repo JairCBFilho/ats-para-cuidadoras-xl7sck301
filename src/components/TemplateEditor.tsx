@@ -43,7 +43,7 @@ export function TemplateEditor({ etapa, canal, template, onSaved }: Props) {
     setSaving(true)
     try {
       const data: EmailTemplateInput = {
-        etapa,
+        etapa: etapa as EmailTemplate['etapa'],
         canal,
         assunto: canal === 'email' ? assunto : etapa,
         corpo,

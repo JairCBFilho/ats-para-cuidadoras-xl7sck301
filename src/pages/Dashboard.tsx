@@ -2,11 +2,19 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import { getApplications, type Application } from '@/services/applications'
 import { getCandidatas, type Candidata } from '@/services/candidatas'
 import { getCuidadores, type Cuidador } from '@/services/cuidadores'
-import { getVagas } from '@/services/vagas'
+import { getVagas, type Vaga } from '@/services/vagas'
 import { useRealtime } from '@/hooks/use-realtime'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Label } from '@/components/ui/label'
 import {
   TrendingUp,
   Clock,
@@ -24,12 +32,13 @@ export default function Dashboard() {
   const [apps, setApps] = useState<Application[]>([])
   const [candidatas, setCandidatas] = useState<Candidata[]>([])
   const [cuidadores, setCuidadores] = useState<Cuidador[]>([])
-  const [vagasAbertas, setVagasAbertas] = useState(0)
+  const [vagas, setVagas] = useState<Vaga[]>([])
+  const [vagaSelecionada, setVagaSelecionada] = useState<string>('all')
   const [loading, setLoading] = useState(true)
 
   const load = useCallback(async () => {
     try {
-      const [a, c, cuid, vagas] = await Promise.all([
+      const [a, c, cuid, v] = await Promise.all([
         getApplications(),
         getCandidatas(),
         getCuidadores(),
@@ -38,7 +47,7 @@ export default function Dashboard() {
       setApps(a)
       setCandidatas(c)
       setCuidadores(cuid)
-      setVagasAbertas(vagas.filter((v) => v.status === 'aberta').length)
+      setVagas(v)
     } catch {
       /* ignore */
     } finally {
@@ -54,17 +63,34 @@ export default function Dashboard() {
   useRealtime('cuidadores', () => load())
   useRealtime('vagas', () => load())
 
+  // Aplica o filtro de vaga quando uma vaga específica está selecionada.
+  // Os talentos (cuidadores) não são filtrados por vaga diretamente — eles são
+  // filtrados indiretamente pelas candidaturas vinculadas (conversão).
+  const vagaFiltrada = vagaSelecionada !== 'all'
+  const appsFiltradas = useMemo(
+    () => (vagaFiltrada ? apps.filter((a) => a.vaga === vagaSelecionada) : apps),
+    [apps, vagaFiltrada, vagaSelecionada],
+  )
+
+  // Quando uma vaga específica está selecionada, restringimos as candidatas
+  // consideradas às que possuem candidatura naquela vaga. Isso filtra as fontes.
+  const candidatasDaVaga = useMemo(() => {
+    if (!vagaFiltrada) return candidatas
+    const ids = new Set(appsFiltradas.map((a) => a.candidata))
+    return candidatas.filter((c) => ids.has(c.id))
+  }, [candidatas, appsFiltradas, vagaFiltrada])
+
   // Métricas existentes (applications + candidatas)
-  const total = apps.length
+  const total = appsFiltradas.length
   const stageData = STAGES.map((stage) => ({
     stage,
-    count: apps.filter((a) => a.etapa === stage).length,
+    count: appsFiltradas.filter((a) => a.etapa === stage).length,
   }))
   const approvedCount = stageData.find((s) => s.stage === 'Aprovada')?.count || 0
   const approvalRate = total > 0 ? (approvedCount / total) * 100 : 0
   const avgTime =
     total > 0
-      ? apps.reduce((sum, a) => {
+      ? appsFiltradas.reduce((sum, a) => {
           const end =
             a.etapa === 'Aprovada' || a.etapa === 'Rejeitada'
               ? new Date(a.updated).getTime()
@@ -74,16 +100,35 @@ export default function Dashboard() {
       : 0
 
   const sourceStats: Record<string, number> = {}
-  apps.forEach((app) => {
-    const c = candidatas.find((cnd) => cnd.id === app.candidata)
+  appsFiltradas.forEach((app) => {
+    const c = candidatasDaVaga.find((cnd) => cnd.id === app.candidata)
     const origem = c?.origem || 'Não informado'
     sourceStats[origem] = (sourceStats[origem] || 0) + 1
   })
   const maxSource = Math.max(...Object.values(sourceStats), 1)
 
   // Novas métricas (cuidadores)
-  const totalTalentos = cuidadores.length
-  const talentosDisponiveis = cuidadores.filter((c) => c.disponibilidade === 'disponível').length
+  // Talentos: quando uma vaga está selecionada, mostramos os talentos que têm
+  // candidatura naquela vaga (via candidata vinculada por email/cpf).
+  const totalTalentos = useMemo(() => {
+    if (!vagaFiltrada) return cuidadores.length
+    const candIdsDaVaga = new Set(appsFiltradas.map((a) => a.candidata))
+    const candEmails = new Set(
+      candidatas.filter((c) => candIdsDaVaga.has(c.id)).map((c) => (c.email || '').toLowerCase()),
+    )
+    return cuidadores.filter((c) => candEmails.has((c.email || '').toLowerCase())).length
+  }, [cuidadores, candidatas, appsFiltradas, vagaFiltrada])
+
+  const talentosDisponiveis = useMemo(() => {
+    if (!vagaFiltrada) return cuidadores.filter((c) => c.disponibilidade === 'disponível').length
+    const candIdsDaVaga = new Set(appsFiltradas.map((a) => a.candidata))
+    const candEmails = new Set(
+      candidatas.filter((c) => candIdsDaVaga.has(c.id)).map((c) => (c.email || '').toLowerCase()),
+    )
+    return cuidadores.filter(
+      (c) => candEmails.has((c.email || '').toLowerCase()) && c.disponibilidade === 'disponível',
+    ).length
+  }, [cuidadores, candidatas, appsFiltradas, vagaFiltrada])
 
   // Top 5 cidades — agrupamento case-insensitive, com nome normalizado para exibição.
   // Primeira letra de cada palavra em maiúscula (ex: "rio de janeiro" -> "Rio de Janeiro").
@@ -101,10 +146,22 @@ export default function Dashboard() {
       )
       .join(' ')
   }
+
+  // Quando uma vaga está selecionada, consideramos apenas as cuidadoras
+  // vinculadas às candidatas daquela vaga para as métricas de cidades e turnos.
+  const cuidadoresParaAgregados = useMemo(() => {
+    if (!vagaFiltrada) return cuidadores
+    const candIdsDaVaga = new Set(appsFiltradas.map((a) => a.candidata))
+    const candEmails = new Set(
+      candidatas.filter((c) => candIdsDaVaga.has(c.id)).map((c) => (c.email || '').toLowerCase()),
+    )
+    return cuidadores.filter((c) => candEmails.has((c.email || '').toLowerCase()))
+  }, [cuidadores, candidatas, appsFiltradas, vagaFiltrada])
+
   // Conta por chave lowercase; guarda o nome normalizado para exibição.
   const cidadesCount: Record<string, number> = {}
   const cidadesNome: Record<string, string> = {}
-  cuidadores.forEach((c) => {
+  cuidadoresParaAgregados.forEach((c) => {
     const chave = (c.cidade || '').trim().toLowerCase()
     if (!chave) return
     cidadesCount[chave] = (cidadesCount[chave] || 0) + 1
@@ -117,9 +174,10 @@ export default function Dashboard() {
   const maxCidade = Math.max(...topCidades.map(([, n]) => n), 1)
 
   // Taxa de conversão: % de cuidadores com pelo menos uma candidatura
-  // (cuidador cujo email ou cpf também existe em uma candidatura que tem application)
+  // (cuidador cujo email ou cpf também existe em uma candidata que tem application)
   const conversao = useMemo(() => {
-    if (cuidadores.length === 0) return 0
+    const baseCuidadores = vagaFiltrada ? cuidadoresParaAgregados : cuidadores
+    if (baseCuidadores.length === 0) return 0
     // Mapa de candidatas por email e por cpf (lowercase), e ids de candidatas com application
     const candByEmail = new Map<string, string>() // email -> candidata.id
     const candByCpf = new Map<string, string>() // cpf -> candidata.id
@@ -133,10 +191,10 @@ export default function Dashboard() {
       const cpf = String((c as unknown as Record<string, unknown>).cpf || '').toLowerCase()
       if (cpf) candByCpf.set(cpf, c.id)
     })
-    const appsCandIds = new Set(apps.map((a) => a.candidata))
+    const appsCandIds = new Set(appsFiltradas.map((a) => a.candidata))
 
     let comApp = 0
-    cuidadores.forEach((cuid) => {
+    baseCuidadores.forEach((cuid) => {
       const email = (cuid.email || '').toLowerCase()
       const cpf = (cuid.cpf || '').toLowerCase()
       const candIdByEmail = email ? candByEmail.get(email) : undefined
@@ -148,21 +206,44 @@ export default function Dashboard() {
         comApp++
       }
     })
-    return (comApp / cuidadores.length) * 100
-  }, [cuidadores, candidatas, apps])
+    return (comApp / baseCuidadores.length) * 100
+  }, [cuidadores, cuidadoresParaAgregados, candidatas, appsFiltradas, vagaFiltrada])
 
   // Distribuição por turno
-  const turno12 = cuidadores.filter((c) => c.turno === '12h').length
-  const turno24 = cuidadores.filter((c) => c.turno === '24h').length
+  const turno12 = cuidadoresParaAgregados.filter((c) => c.turno === '12h').length
+  const turno24 = cuidadoresParaAgregados.filter((c) => c.turno === '24h').length
   const totalTurno = turno12 + turno24
+
+  const vagasAbertas = vagas.filter((v) => v.status === 'aberta').length
 
   if (loading) return <div className="p-6 text-muted-foreground">Carregando...</div>
 
   return (
     <div className="container mx-auto space-y-6 p-6">
-      <div>
-        <h1 className="text-2xl font-bold">Dashboard de Métricas</h1>
-        <p className="text-muted-foreground">Visão geral do funil de recrutamento</p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Dashboard de Métricas</h1>
+          <p className="text-muted-foreground">Visão geral do funil de recrutamento</p>
+        </div>
+        <div className="w-full sm:w-72">
+          <Label htmlFor="vaga-filter" className="text-xs text-muted-foreground">
+            Filtrar por vaga
+          </Label>
+          <Select value={vagaSelecionada} onValueChange={setVagaSelecionada}>
+            <SelectTrigger id="vaga-filter">
+              <SelectValue placeholder="Todas as vagas" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as vagas</SelectItem>
+              {vagas.map((v) => (
+                <SelectItem key={v.id} value={v.id}>
+                  {v.cargo}
+                  {v.localizacao ? ` — ${v.localizacao}` : ''}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Linha 1 — métricas existentes */}

@@ -77,13 +77,16 @@ export default function EmailTemplates() {
     }))
     try {
       if (form.id) {
-        await updateEmailTemplate(form.id, { assunto: form.assunto, corpo: form.corpo })
+        await updateEmailTemplate(form.id, {
+          assunto: form.assunto,
+          corpo: form.corpo,
+        })
       } else {
         const created = await createEmailTemplate({
           etapa: stage,
           assunto: form.assunto,
           corpo: form.corpo,
-        } as Partial<EmailTemplate>)
+        })
         setForms((prev) => ({
           ...prev,
           [stage]: { ...prev[stage], id: (created as EmailTemplate).id },

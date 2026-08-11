@@ -43,6 +43,22 @@ routerAdd(
         linkedin: candidata.getString('linkedin'),
         portfolio: candidata.getString('portfolio'),
       }
+      // Tenta localizar o cuidador vinculado (por email) para obter as tags
+      try {
+        var cEmail = candidata.getString('email')
+        if (cEmail) {
+          var cuidadoresRel = $app.findRecordsByFilter(
+            'cuidadores',
+            "email = '" + cEmail.replace(/'/g, "''") + "'",
+            'created',
+            1,
+            0,
+          )
+          if (cuidadoresRel.length > 0) {
+            candidataData.tags = cuidadoresRel[0].getString('tags')
+          }
+        }
+      } catch (_) {}
       var message =
         'Analise a compatibilidade desta candidata com esta vaga e retorne apenas o JSON:\n\nDADOS DA CANDIDATA:\n' +
         JSON.stringify(candidataData, null, 2) +

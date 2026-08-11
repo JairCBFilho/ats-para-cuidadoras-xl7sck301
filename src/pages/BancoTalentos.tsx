@@ -9,8 +9,10 @@ import {
   Upload,
   ChevronDown,
   ChevronUp,
+  Send,
 } from 'lucide-react'
 import { ImportCsvDialog } from '@/components/ImportCsvDialog'
+import { ComunicacaoPorTagDialog } from '@/components/ComunicacaoPorTagDialog'
 import { useRealtime } from '@/hooks/use-realtime'
 import {
   getCuidadores,
@@ -54,6 +56,7 @@ export default function BancoTalentos() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<Cuidador | null>(null)
   const [importOpen, setImportOpen] = useState(false)
+  const [comunicacaoOpen, setComunicacaoOpen] = useState(false)
 
   // Filtros básicos (sempre visíveis)
   const [filterDisp, setFilterDisp] = useState('all')
@@ -165,6 +168,9 @@ export default function BancoTalentos() {
           <p className="text-sm text-muted-foreground">Cuidadores disponíveis para pré-seleção</p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setComunicacaoOpen(true)}>
+            <Send className="mr-2 h-4 w-4" /> Comunicação por Tag
+          </Button>
           <Button variant="outline" onClick={() => setImportOpen(true)}>
             <Upload className="mr-2 h-4 w-4" /> Importar CSV
           </Button>
@@ -382,6 +388,7 @@ export default function BancoTalentos() {
         onSaved={loadData}
       />
       <ImportCsvDialog open={importOpen} onOpenChange={setImportOpen} onCompleted={loadData} />
+      <ComunicacaoPorTagDialog open={comunicacaoOpen} onOpenChange={setComunicacaoOpen} />
     </div>
   )
 }

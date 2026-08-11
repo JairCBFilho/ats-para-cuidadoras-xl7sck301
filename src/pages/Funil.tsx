@@ -37,7 +37,7 @@ export default function Funil() {
 
   const moveApp = async (id: string, etapa: string) => {
     try {
-      await updateApplication(id, { etapa })
+      await updateApplication(id, { etapa: etapa as Application['etapa'] })
       toast.success('Candidatura movida para ' + etapa)
       load()
     } catch {

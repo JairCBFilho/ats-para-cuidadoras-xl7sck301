@@ -12,6 +12,7 @@ import {
   Settings,
   TrendingUp,
   Database,
+  Megaphone,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
@@ -25,6 +26,7 @@ const navItems = [
   { to: '/vagas', label: 'Vagas', icon: Briefcase },
   { to: '/candidatas', label: 'Candidatas', icon: Users },
   { to: '/banco-talentos', label: 'Banco de Talentos', icon: Database },
+  { to: '/comunicacao-tag', label: 'Comunicação por Tag', icon: Megaphone },
   { to: '/funil', label: 'Funil', icon: KanbanSquare },
   { to: '/dashboard', label: 'Dashboard de Métricas', icon: TrendingUp },
   { to: '/relatorios', label: 'Relatórios', icon: BarChart3 },

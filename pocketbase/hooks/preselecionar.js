@@ -62,6 +62,7 @@ routerAdd(
         especialidades: cuidador.getString('especialidades'),
         turno: cuidador.getString('turno'),
         disponibilidade: cuidador.getString('disponibilidade'),
+        tags: cuidador.getString('tags'),
       }
 
       var message =

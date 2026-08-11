@@ -37,6 +37,24 @@ onRecordAfterCreateSuccess((e) => {
       linkedin: candidata.getString('linkedin'),
       portfolio: candidata.getString('portfolio'),
     }
+    // Tenta localizar o cuidador vinculado (por email) para obter as tags
+    var cuidadorTags = ''
+    try {
+      var cEmail = candidata.getString('email')
+      if (cEmail) {
+        var cuidadoresRel = $app.findRecordsByFilter(
+          'cuidadores',
+          "email = '" + cEmail.replace(/'/g, "''") + "'",
+          'created',
+          1,
+          0,
+        )
+        if (cuidadoresRel.length > 0) {
+          cuidadorTags = cuidadoresRel[0].getString('tags')
+          cData.tags = cuidadorTags
+        }
+      }
+    } catch (_) {}
     var vData = {
       cargo: vaga.getString('cargo'),
       localizacao: vaga.getString('localizacao'),

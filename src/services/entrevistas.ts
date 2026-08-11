@@ -1,4 +1,6 @@
 import pb from '@/lib/pocketbase/client'
+import type { Candidata } from '@/services/candidatas'
+import type { Vaga } from '@/services/vagas'
 
 export type StatusEntrevista = 'agendada' | 'realizada' | 'cancelada'
 
@@ -11,6 +13,12 @@ export interface Entrevista {
   observacoes: string
   created: string
   updated: string
+  /** Registros relacionados expandidos pelo PocketBase (via `expand`). */
+  expand?: {
+    candidata?: Candidata
+    vaga?: Vaga
+    [k: string]: unknown
+  }
 }
 
 export const getEntrevistas = () =>
