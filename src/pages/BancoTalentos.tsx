@@ -7,11 +7,13 @@ import {
   Star,
   Clock,
   Upload,
+  FileText,
   ChevronDown,
   ChevronUp,
   Send,
 } from 'lucide-react'
 import { ImportCsvDialog } from '@/components/ImportCsvDialog'
+import { ImportCurriculoDialog } from '@/components/ImportCurriculoDialog'
 import { ComunicacaoPorTagDialog } from '@/components/ComunicacaoPorTagDialog'
 import { useRealtime } from '@/hooks/use-realtime'
 import {
@@ -56,6 +58,7 @@ export default function BancoTalentos() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<Cuidador | null>(null)
   const [importOpen, setImportOpen] = useState(false)
+  const [importCurriculoOpen, setImportCurriculoOpen] = useState(false)
   const [comunicacaoOpen, setComunicacaoOpen] = useState(false)
 
   // Filtros básicos (sempre visíveis)
@@ -167,12 +170,15 @@ export default function BancoTalentos() {
           <h1 className="text-2xl font-bold">Banco de Talentos</h1>
           <p className="text-sm text-muted-foreground">Cuidadores disponíveis para pré-seleção</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={() => setComunicacaoOpen(true)}>
             <Send className="mr-2 h-4 w-4" /> Comunicação por Tag
           </Button>
           <Button variant="outline" onClick={() => setImportOpen(true)}>
             <Upload className="mr-2 h-4 w-4" /> Importar CSV
+          </Button>
+          <Button variant="outline" onClick={() => setImportCurriculoOpen(true)}>
+            <FileText className="mr-2 h-4 w-4" /> Importar Currículo (PDF)
           </Button>
           <Button
             onClick={() => {
@@ -182,7 +188,7 @@ export default function BancoTalentos() {
           >
             <Plus className="mr-2 h-4 w-4" /> Novo Cuidador
           </Button>
-        </div>
+        </div>{' '}
       </div>
 
       {/* Filtros básicos */}
@@ -388,6 +394,11 @@ export default function BancoTalentos() {
         onSaved={loadData}
       />
       <ImportCsvDialog open={importOpen} onOpenChange={setImportOpen} onCompleted={loadData} />
+      <ImportCurriculoDialog
+        open={importCurriculoOpen}
+        onOpenChange={setImportCurriculoOpen}
+        onCompleted={loadData}
+      />
       <ComunicacaoPorTagDialog open={comunicacaoOpen} onOpenChange={setComunicacaoOpen} />
     </div>
   )

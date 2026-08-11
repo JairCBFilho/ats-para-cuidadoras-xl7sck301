@@ -1,5 +1,10 @@
 import { useState, useEffect } from 'react'
-import { getEmailTemplates, type EmailTemplate, type EtapaEmail } from '@/services/email-templates'
+import {
+  getEmailTemplates,
+  ETAPA_LABELS,
+  type EmailTemplate,
+  type EtapaEmail,
+} from '@/services/email-templates'
 import {
   getConfiguracoes,
   updateConfiguracoes,
@@ -21,7 +26,14 @@ import {
 import { Settings } from 'lucide-react'
 import { toast } from 'sonner'
 
-const STAGES: EtapaEmail[] = ['Triagem', 'Entrevista', 'Aprovada', 'Rejeitada']
+const STAGES: EtapaEmail[] = [
+  'Triagem',
+  'Entrevista',
+  'Aprovada',
+  'Rejeitada',
+  'AtualizacaoCadastro',
+  'VerificacaoDisponibilidade',
+]
 const VARIABLES = ['{nome_candidata}', '{nome_vaga}', '{data_entrevista}']
 
 export default function Configuracoes() {
@@ -113,7 +125,7 @@ export default function Configuracoes() {
           <TabsContent value="email" className="space-y-4">
             {STAGES.map((stage) => (
               <div key={stage}>
-                <h3 className="mb-2 text-sm font-semibold">{stage}</h3>
+                <h3 className="mb-2 text-sm font-semibold">{ETAPA_LABELS[stage]}</h3>
                 <TemplateEditor
                   etapa={stage}
                   canal="email"
@@ -126,7 +138,7 @@ export default function Configuracoes() {
           <TabsContent value="whatsapp" className="space-y-4">
             {STAGES.map((stage) => (
               <div key={stage}>
-                <h3 className="mb-2 text-sm font-semibold">{stage}</h3>
+                <h3 className="mb-2 text-sm font-semibold">{ETAPA_LABELS[stage]}</h3>
                 <TemplateEditor
                   etapa={stage}
                   canal="whatsapp"

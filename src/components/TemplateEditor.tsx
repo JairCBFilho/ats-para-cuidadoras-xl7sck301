@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import {
   type EmailTemplate,
   type EmailTemplateInput,
+  ETAPA_LABELS,
   createEmailTemplate,
   updateEmailTemplate,
 } from '@/services/email-templates'
@@ -45,13 +46,16 @@ export function TemplateEditor({ etapa, canal, template, onSaved }: Props) {
       const data: EmailTemplateInput = {
         etapa: etapa as EmailTemplate['etapa'],
         canal,
-        assunto: canal === 'email' ? assunto : etapa,
+        assunto:
+          canal === 'email' ? assunto : ETAPA_LABELS[etapa as EmailTemplate['etapa']] || etapa,
         corpo,
       }
       if (anexoFile) data.anexo = anexoFile
       if (template) await updateEmailTemplate(template.id, data)
       else await createEmailTemplate(data)
-      toast.success(`Template de ${etapa} (${canal}) salvo!`)
+      toast.success(
+        `Template de ${ETAPA_LABELS[etapa as EmailTemplate['etapa']] || etapa} (${canal}) salvo!`,
+      )
       onSaved()
     } catch (err) {
       setErrors(extractFieldErrors(err))

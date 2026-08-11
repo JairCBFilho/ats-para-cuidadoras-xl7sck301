@@ -3,6 +3,7 @@ import {
   getEmailTemplates,
   createEmailTemplate,
   updateEmailTemplate,
+  ETAPA_LABELS,
   type EmailTemplate,
   type EtapaEmail,
 } from '@/services/email-templates'
@@ -17,7 +18,14 @@ import { Loader2, Save, Mail } from 'lucide-react'
 import { toast } from 'sonner'
 import { extractFieldErrors, getErrorMessage, type FieldErrors } from '@/lib/pocketbase/errors'
 
-const STAGES: EtapaEmail[] = ['Triagem', 'Entrevista', 'Aprovada', 'Rejeitada']
+const STAGES: EtapaEmail[] = [
+  'Triagem',
+  'Entrevista',
+  'Aprovada',
+  'Rejeitada',
+  'AtualizacaoCadastro',
+  'VerificacaoDisponibilidade',
+]
 const VARIABLES = ['{nome_candidata}', '{cargo}', '{etapa}']
 
 interface TemplateForm {
@@ -92,7 +100,7 @@ export default function EmailTemplates() {
           [stage]: { ...prev[stage], id: (created as EmailTemplate).id },
         }))
       }
-      toast.success(`Template de ${stage} salvo!`)
+      toast.success(`Template de ${ETAPA_LABELS[stage]} salvo!`)
     } catch (err) {
       const errors = extractFieldErrors(err)
       setForms((prev) => ({
@@ -135,7 +143,7 @@ export default function EmailTemplates() {
           return (
             <Card key={stage}>
               <CardHeader>
-                <CardTitle>{stage}</CardTitle>
+                <CardTitle>{ETAPA_LABELS[stage]}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>

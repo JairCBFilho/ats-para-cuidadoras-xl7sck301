@@ -32,7 +32,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { getCuidadores, parseTags, SUGGESTED_TAGS, type Cuidador } from '@/services/cuidadores'
-import { getEmailTemplates, type EmailTemplate } from '@/services/email-templates'
+import { getEmailTemplates, ETAPA_LABELS, type EmailTemplate } from '@/services/email-templates'
 import { dispararPorTag, type DisparoPorTagEmailResult } from '@/services/disparo-por-tag'
 import { useWhatsappQueue } from '@/hooks/use-whatsapp-queue'
 import type { BulkSendResult } from '@/services/bulk-send'
@@ -304,7 +304,8 @@ export function ComunicacaoPorTagDialog({ open, onOpenChange }: Props) {
                     ) : (
                       templatesCanal.map((t) => (
                         <SelectItem key={t.id} value={t.id}>
-                          {t.etapa} — {t.assunto || '(sem assunto)'}
+                          {ETAPA_LABELS[t.etapa as keyof typeof ETAPA_LABELS] || t.etapa} —{' '}
+                          {t.assunto || '(sem assunto)'}
                         </SelectItem>
                       ))
                     )}

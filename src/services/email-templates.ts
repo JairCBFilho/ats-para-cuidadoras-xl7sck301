@@ -1,6 +1,22 @@
 import pb from '@/lib/pocketbase/client'
 
-export type EtapaEmail = 'Triagem' | 'Entrevista' | 'Aprovada' | 'Rejeitada'
+export type EtapaEmail =
+  | 'Triagem'
+  | 'Entrevista'
+  | 'Aprovada'
+  | 'Rejeitada'
+  | 'AtualizacaoCadastro'
+  | 'VerificacaoDisponibilidade'
+
+/** Rótulos de exibição legíveis para cada etapa de comunicação. */
+export const ETAPA_LABELS: Record<EtapaEmail, string> = {
+  Triagem: 'Triagem',
+  Entrevista: 'Entrevista',
+  Aprovada: 'Aprovada',
+  Rejeitada: 'Rejeitada',
+  AtualizacaoCadastro: 'Atualização de Cadastro',
+  VerificacaoDisponibilidade: 'Verificação de Disponibilidade',
+}
 
 export interface EmailTemplate {
   id: string

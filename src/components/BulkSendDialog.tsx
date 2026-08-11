@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { bulkSend } from '@/services/bulk-send'
-import { getEmailTemplates, type EmailTemplate } from '@/services/email-templates'
+import { getEmailTemplates, ETAPA_LABELS, type EmailTemplate } from '@/services/email-templates'
 import { getConfiguracoes } from '@/services/configuracoes'
 import { useWhatsappQueue } from '@/hooks/use-whatsapp-queue'
 import {
@@ -40,7 +40,14 @@ interface Props {
   vagaId: string
 }
 
-const STAGES = ['Triagem', 'Entrevista', 'Aprovada', 'Rejeitada'] as const
+const STAGES = [
+  'Triagem',
+  'Entrevista',
+  'Aprovada',
+  'Rejeitada',
+  'AtualizacaoCadastro',
+  'VerificacaoDisponibilidade',
+] as const
 
 export function BulkSendDialog({ open, onOpenChange, candidataIds, vagaId }: Props) {
   const [etapa, setEtapa] = useState<string>('Triagem')
@@ -141,7 +148,7 @@ export function BulkSendDialog({ open, onOpenChange, candidataIds, vagaId }: Pro
                   <SelectContent>
                     {STAGES.map((s) => (
                       <SelectItem key={s} value={s}>
-                        {s}
+                        {ETAPA_LABELS[s as keyof typeof ETAPA_LABELS]}
                       </SelectItem>
                     ))}
                   </SelectContent>
