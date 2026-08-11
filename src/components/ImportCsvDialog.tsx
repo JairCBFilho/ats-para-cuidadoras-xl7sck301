@@ -25,8 +25,58 @@ interface PreviewRow {
   [key: string]: string
 }
 
-/** Parser CSV que respeita aspas e delimitador ';' */
-function parseCsvLine(line: string): string[] {
+/**
+ * Conta ocorrências de um delimitador fora de aspas em uma linha.
+ */
+function countDelimiter(line: string, delim: string): number {
+  let count = 0
+  let inQuotes = false
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i]
+    if (inQuotes) {
+      if (ch === '"') {
+        if (line[i + 1] === '"') i++
+        else inQuotes = false
+      }
+    } else {
+      if (ch === '"') inQuotes = true
+      else if (ch === delim) count++
+    }
+  }
+  return count
+}
+
+/**
+ * Auto-detecta o delimitador do CSV analisando as primeiras linhas.
+ * Conta ocorrências de ';' e ',' em cada linha e escolhe o delimitador
+ * com contagem consistente e maior. Empate → ';' (padrão brasileiro).
+ */
+function detectDelimiter(lines: string[]): string {
+  const sample = lines.slice(0, 5).filter((l) => l.trim())
+  if (sample.length === 0) return ';'
+
+  const semiCounts = sample.map((l) => countDelimiter(l, ';'))
+  const commaCounts = sample.map((l) => countDelimiter(l, ','))
+
+  // Consistência: mesma contagem em todas as linhas de amostra
+  const semiConsistent = semiCounts.every((c) => c === semiCounts[0]) && semiCounts[0] > 0
+  const commaConsistent = commaCounts.every((c) => c === commaCounts[0]) && commaCounts[0] > 0
+
+  const semiAvg = semiCounts.reduce((a, b) => a + b, 0) / semiCounts.length
+  const commaAvg = commaCounts.reduce((a, b) => a + b, 0) / commaCounts.length
+
+  if (semiConsistent && !commaConsistent) return ';'
+  if (commaConsistent && !semiConsistent) return ','
+  if (semiConsistent && commaConsistent) {
+    return semiAvg >= commaAvg ? ';' : ','
+  }
+  // Nenhum totalmente consistente — usa o de maior média (desempate → ';')
+  if (commaAvg > semiAvg) return ','
+  return ';'
+}
+
+/** Parser CSV que respeita aspas e aceita delimitador como parâmetro (padrão ';') */
+function parseCsvLine(line: string, delimiter: string = ';'): string[] {
   const result: string[] = []
   let cur = ''
   let inQuotes = false
@@ -46,7 +96,7 @@ function parseCsvLine(line: string): string[] {
     } else {
       if (ch === '"') {
         inQuotes = true
-      } else if (ch === ';') {
+      } else if (ch === delimiter) {
         result.push(cur)
         cur = ''
       } else {
@@ -66,6 +116,9 @@ async function parseCsvPreview(file: File): Promise<{ headers: string[]; rows: P
     .replace(/\r/g, '\n')
   const lines = clean.split('\n').filter((l) => l.trim())
 
+  // Auto-detecta o delimitador a partir das primeiras linhas
+  const delimiter = detectDelimiter(lines)
+
   // Encontra o cabeçalho (linha com "E-mail")
   let headerIdx = 0
   for (let i = 0; i < Math.min(lines.length, 5); i++) {
@@ -75,10 +128,10 @@ async function parseCsvPreview(file: File): Promise<{ headers: string[]; rows: P
       break
     }
   }
-  const headers = parseCsvLine(lines[headerIdx])
+  const headers = parseCsvLine(lines[headerIdx], delimiter)
   const rows: PreviewRow[] = []
   for (let i = headerIdx + 1; i < Math.min(lines.length, headerIdx + 6); i++) {
-    const cells = parseCsvLine(lines[i])
+    const cells = parseCsvLine(lines[i], delimiter)
     const row: PreviewRow = {}
     headers.forEach((h, idx) => {
       row[h] = cells[idx] || ''

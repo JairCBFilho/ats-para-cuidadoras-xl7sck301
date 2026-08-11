@@ -30,8 +30,74 @@ routerAdd(
 
     var lines = content.split('\n')
 
-    // Parser CSV com delimitador ";" que respeita aspas
-    var parseLine = function (line) {
+    // Conta ocorrências de um delimitador fora de aspas em uma linha
+    var countDelimiter = function (line, delim) {
+      var count = 0
+      var inQuotes = false
+      for (var i = 0; i < line.length; i++) {
+        var ch = line[i]
+        if (inQuotes) {
+          if (ch === '"') {
+            if (line[i + 1] === '"') i++
+            else inQuotes = false
+          }
+        } else {
+          if (ch === '"') inQuotes = true
+          else if (ch === delim) count++
+        }
+      }
+      return count
+    }
+
+    // Auto-detecta o delimitador a partir das primeiras linhas.
+    // Escolhe o delimitador com contagem consistente e maior; empate -> ';'
+    var detectDelimiter = function (sampleLines) {
+      var sample = []
+      for (var i = 0; i < Math.min(sampleLines.length, 5); i++) {
+        if (sampleLines[i] && sampleLines[i].trim()) sample.push(sampleLines[i])
+      }
+      if (sample.length === 0) return ';'
+
+      var semiCounts = sample.map(function (l) {
+        return countDelimiter(l, ';')
+      })
+      var commaCounts = sample.map(function (l) {
+        return countDelimiter(l, ',')
+      })
+
+      var semiConsistent =
+        semiCounts.every(function (c) {
+          return c === semiCounts[0]
+        }) && semiCounts[0] > 0
+      var commaConsistent =
+        commaCounts.every(function (c) {
+          return c === commaCounts[0]
+        }) && commaCounts[0] > 0
+
+      var semiAvg =
+        semiCounts.reduce(function (a, b) {
+          return a + b
+        }, 0) / semiCounts.length
+      var commaAvg =
+        commaCounts.reduce(function (a, b) {
+          return a + b
+        }, 0) / commaCounts.length
+
+      if (semiConsistent && !commaConsistent) return ';'
+      if (commaConsistent && !semiConsistent) return ','
+      if (semiConsistent && commaConsistent) {
+        return semiAvg >= commaAvg ? ';' : ','
+      }
+      // Nenhum totalmente consistente — usa o de maior média (desempate -> ';')
+      if (commaAvg > semiAvg) return ','
+      return ';'
+    }
+
+    var delimiter = detectDelimiter(lines)
+
+    // Parser CSV que respeita aspas e aceita delimitador como parâmetro (padrão ';')
+    var parseLine = function (line, delim) {
+      if (!delim) delim = delimiter || ';'
       var result = []
       var cur = ''
       var inQuotes = false
@@ -51,7 +117,7 @@ routerAdd(
         } else {
           if (ch === '"') {
             inQuotes = true
-          } else if (ch === ';') {
+          } else if (ch === delim) {
             result.push(cur)
             cur = ''
           } else {
@@ -68,7 +134,7 @@ routerAdd(
     var headers = []
     for (var h = 0; h < Math.min(lines.length, 5); h++) {
       var candidate = parseLine(lines[h])
-      var joined = candidate.join(';').toLowerCase()
+      var joined = candidate.join(delimiter).toLowerCase()
       if (joined.indexOf('e-mail') !== -1 || joined.indexOf('email') !== -1) {
         if (joined.indexOf('nome') !== -1 || candidate.length > 20) {
           headerIdx = h
@@ -161,9 +227,19 @@ routerAdd(
     // Converte datas em vários formatos BR para ISO (YYYY-MM-DD).
     // Aceita dd/mm/yyyy, d/m/yyyy, dd-mm-yyyy, e datas só com dígitos como 26082000.
     var parseDate = function (raw) {
-      if (!raw) return ''
+      if (raw === undefined || raw === null) return ''
       var s = String(raw).trim()
       if (!s) return ''
+
+      // Rejeita valores inválidos vindos de planilhas (#VALUE!, #REF!, 0, texto puro)
+      var upper = s.toUpperCase()
+      if (upper === '#VALUE!' || upper === '#REF!' || upper === '#N/A' || upper === '#NAME?') {
+        return ''
+      }
+      if (upper.indexOf('VALUE') !== -1 || upper.indexOf('REF') !== -1) return ''
+
+      // "0" ou apenas zeros não são datas válidas
+      if (/^0+$/.test(s)) return ''
 
       // Tenta dd/mm/yyyy ou d/m/yyyy (separador / ou -)
       var m = s.match(/^(\d{1,2})[/\-](\d{1,2})[/\-](\d{2,4})$/)
@@ -171,14 +247,12 @@ routerAdd(
         var dd = m[1].length < 2 ? '0' + m[1] : m[1]
         var mm = m[2].length < 2 ? '0' + m[2] : m[2]
         var yy = m[3]
-        if (yy.length === 2) yy = '20' + yy
+        if (yy.length === 2) {
+          // Ano 2 dígitos: 00-29 -> 20xx, 30-99 -> 19xx
+          var yi = parseInt(yy, 10)
+          yy = yi <= 29 ? '20' + yy : '19' + yy
+        }
         return yy + '-' + mm + '-' + dd
-      }
-
-      // Tenta dd/mm/yy
-      m = s.match(/^(\d{2})[/\-](\d{2})[/\-](\d{2})$/)
-      if (m) {
-        return '20' + m[3] + '-' + m[2] + '-' + m[1]
       }
 
       // Data só com dígitos (ex.: 26082000) → assume dd/mm/yyyy
@@ -190,6 +264,7 @@ routerAdd(
       // Já está em ISO?
       if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10)
 
+      // Qualquer outro texto (não-data) é ignorado sem quebrar
       return ''
     }
 
