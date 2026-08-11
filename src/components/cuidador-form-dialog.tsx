@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react'
 import {
   createCuidador,
   updateCuidador,
+  parseTags,
+  stringifyTags,
+  SUGGESTED_TAGS,
   type Cuidador,
   type CuidadorInput,
 } from '@/services/cuidadores'
@@ -21,6 +24,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Separator } from '@/components/ui/separator'
+import { Badge } from '@/components/ui/badge'
 import {
   Select,
   SelectContent,
@@ -28,6 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { X, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 
 const ORIGEM_OPTIONS = ['Indicação', 'LinkedIn', 'Instagram', 'Site', 'WhatsApp', 'Outro']
@@ -86,6 +91,8 @@ const defaultForm = {
   // Documentos
   certific: '',
   declaracao: '',
+  // Tags
+  tags: '',
 }
 
 /** Título de seção com separador visual */
@@ -155,6 +162,8 @@ export function CuidadorFormDialog({ open, onOpenChange, cuidador, onSaved }: Pr
               // Documentos
               certific: cuidador.certific || '',
               declaracao: cuidador.declaracao || '',
+              // Tags
+              tags: cuidador.tags || '',
             }
           : defaultForm,
       )
@@ -210,6 +219,13 @@ export function CuidadorFormDialog({ open, onOpenChange, cuidador, onSaved }: Pr
 
   const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) =>
     setForm((f) => ({ ...f, [key]: value }))
+
+  const currentTags = parseTags(form.tags)
+  const addTag = (t: string) => set('tags', stringifyTags([...currentTags, t]))
+  const removeTag = (t: string) => set('tags', stringifyTags(currentTags.filter((x) => x !== t)))
+  const suggestions = SUGGESTED_TAGS.filter(
+    (s) => !currentTags.some((x) => x.toLowerCase() === s.toLowerCase()),
+  )
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -583,6 +599,51 @@ export function CuidadorFormDialog({ open, onOpenChange, cuidador, onSaved }: Pr
                 <p className="mt-1 text-sm text-destructive">{errors.portfolio}</p>
               )}
             </div>
+          </div>
+
+          {/* Tags */}
+          <SectionTitle>Tags / Etiquetas</SectionTitle>
+          <div>
+            <Label htmlFor="c-tags">Tags (separadas por vírgula)</Label>
+            <Input
+              id="c-tags"
+              value={form.tags}
+              placeholder="Ex: plantão 12h, Alzheimer, curativo"
+              onChange={(e) => set('tags', e.target.value)}
+            />
+            {/* Chips de tags atuais (removíveis) */}
+            {currentTags.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {currentTags.map((t) => (
+                  <Badge key={t} variant="secondary" className="gap-1 pr-1">
+                    {t}
+                    <button
+                      type="button"
+                      onClick={() => removeTag(t)}
+                      className="ml-0.5 rounded-full hover:bg-black/10"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            )}
+            {/* Sugestões clicáveis */}
+            {suggestions.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1">
+                {suggestions.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => addTag(s)}
+                    className="inline-flex items-center gap-0.5 rounded-md border border-dashed border-input px-1.5 py-0.5 text-[11px] font-medium hover:bg-accent"
+                  >
+                    <Plus className="h-3 w-3" />
+                    {s}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Documentos */}

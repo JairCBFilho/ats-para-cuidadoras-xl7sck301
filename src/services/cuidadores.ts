@@ -45,8 +45,41 @@ export interface Cuidador {
   inicio_imediato: string
   certific: string
   declaracao: string
+  tags?: string
   created: string
   updated: string
+}
+
+/** Tags sugeridas para classificar cuidadores */
+export const SUGGESTED_TAGS = [
+  'plantão 12h',
+  'plantão 24h',
+  'ILPI',
+  'pós-operatório',
+  'Alzheimer',
+  'Parkinson',
+  'cuidados paliativos',
+  'recuperação cirúrgica',
+  'companhia',
+  'higiene',
+  'medicação',
+  'curativo',
+  'sonda',
+  'ventilação',
+] as const
+
+/** Converte o campo `tags` (string separada por vírgulas) num array de tags limpo */
+export function parseTags(tags?: string): string[] {
+  if (!tags) return []
+  return tags
+    .split(',')
+    .map((t) => t.trim())
+    .filter((t) => t.length > 0)
+}
+
+/** Junta um array de tags num valor para o campo `tags` */
+export function stringifyTags(tags: string[]): string {
+  return tags.join(', ')
 }
 
 export type CuidadorInput = Omit<Partial<Cuidador>, 'foto' | 'curriculo'> & {

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-11T20:48:04.216Z",
+  "generatedAt": "2026-08-11T21:04:23.793Z",
   "collections": [
     {
       "name": "users",
@@ -896,6 +896,12 @@
         },
         {
           "name": "declaracao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tags",
           "type": "text",
           "required": false,
           "system": false

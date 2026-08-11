@@ -1,15 +1,33 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Plus, Pencil, Trash2, MapPin, Star, Clock, Upload } from 'lucide-react'
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  MapPin,
+  Star,
+  Clock,
+  Upload,
+  ChevronDown,
+  ChevronUp,
+} from 'lucide-react'
 import { ImportCsvDialog } from '@/components/ImportCsvDialog'
 import { useRealtime } from '@/hooks/use-realtime'
-import { getCuidadores, deleteCuidador, type Cuidador } from '@/services/cuidadores'
+import {
+  getCuidadores,
+  deleteCuidador,
+  updateCuidador,
+  parseTags,
+  type Cuidador,
+} from '@/services/cuidadores'
 import { CuidadorFormDialog } from '@/components/cuidador-form-dialog'
+import { TagEditor, TagBadges } from '@/components/TagEditor'
 import { useFileUrl } from '@/hooks/use-file-url'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -35,10 +53,30 @@ export default function BancoTalentos() {
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<Cuidador | null>(null)
+  const [importOpen, setImportOpen] = useState(false)
+
+  // Filtros básicos (sempre visíveis)
   const [filterDisp, setFilterDisp] = useState('all')
   const [filterEsp, setFilterEsp] = useState('')
   const [filterLoc, setFilterLoc] = useState('')
-  const [importOpen, setImportOpen] = useState(false)
+
+  // Filtros avançados (colapsáveis)
+  const [advancedOpen, setAdvancedOpen] = useState(false)
+  const [filterCidade, setFilterCidade] = useState('')
+  const [filterBairro, setFilterBairro] = useState('')
+  const [filterDispHorario, setFilterDispHorario] = useState('')
+  const [filterCurso, setFilterCurso] = useState('')
+  const [filterTurno, setFilterTurno] = useState('all')
+  const [filterExpIlp, setFilterExpIlp] = useState('')
+  const [filterInicioImediato, setFilterInicioImediato] = useState('')
+  const [filterTag, setFilterTag] = useState('all')
+
+  // Tags já usadas (para o filtro por tag)
+  const availableTags = useMemo(() => {
+    const set = new Set<string>()
+    cuidadores.forEach((c) => parseTags(c.tags).forEach((t) => set.add(t)))
+    return Array.from(set).sort((a, b) => a.localeCompare(b))
+  }, [cuidadores])
 
   const loadData = async () => {
     try {
@@ -56,14 +94,38 @@ export default function BancoTalentos() {
   useRealtime('cuidadores', () => loadData())
 
   const filtered = useMemo(() => {
+    const contains = (field: string | undefined, query: string) =>
+      !query || (field || '').toLowerCase().includes(query.toLowerCase())
+
     return cuidadores.filter((c) => {
       if (filterDisp !== 'all' && c.disponibilidade !== filterDisp) return false
-      if (filterEsp && !c.especialidades?.toLowerCase().includes(filterEsp.toLowerCase()))
-        return false
-      if (filterLoc && !c.localizacao?.toLowerCase().includes(filterLoc.toLowerCase())) return false
+      if (!contains(c.especialidades, filterEsp)) return false
+      if (!contains(c.localizacao, filterLoc)) return false
+      // Avançados
+      if (!contains(c.cidade, filterCidade)) return false
+      if (!contains(c.bairro, filterBairro)) return false
+      if (!contains(c.disponibilidade_horario, filterDispHorario)) return false
+      if (!contains(c.curso_cuidador, filterCurso)) return false
+      if (filterTurno !== 'all' && c.turno !== filterTurno) return false
+      if (!contains(c.experiencia_ilp, filterExpIlp)) return false
+      if (!contains(c.inicio_imediato, filterInicioImediato)) return false
+      if (filterTag !== 'all' && !parseTags(c.tags).includes(filterTag)) return false
       return true
     })
-  }, [cuidadores, filterDisp, filterEsp, filterLoc])
+  }, [
+    cuidadores,
+    filterDisp,
+    filterEsp,
+    filterLoc,
+    filterCidade,
+    filterBairro,
+    filterDispHorario,
+    filterCurso,
+    filterTurno,
+    filterExpIlp,
+    filterInicioImediato,
+    filterTag,
+  ])
 
   const handleDelete = async (id: string) => {
     if (!confirm('Deseja realmente excluir este cuidador?')) return
@@ -73,6 +135,26 @@ export default function BancoTalentos() {
     } catch (err) {
       toast.error(getErrorMessage(err))
     }
+  }
+
+  const handleTagsChange = async (c: Cuidador, tags: string) => {
+    try {
+      await updateCuidador(c.id, { tags })
+      setCuidadores((prev) => prev.map((x) => (x.id === c.id ? { ...x, tags } : x)))
+    } catch (err) {
+      toast.error(getErrorMessage(err))
+    }
+  }
+
+  const clearAdvanced = () => {
+    setFilterCidade('')
+    setFilterBairro('')
+    setFilterDispHorario('')
+    setFilterCurso('')
+    setFilterTurno('all')
+    setFilterExpIlp('')
+    setFilterInicioImediato('')
+    setFilterTag('all')
   }
 
   return (
@@ -97,6 +179,7 @@ export default function BancoTalentos() {
         </div>
       </div>
 
+      {/* Filtros básicos */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="w-48">
           <Select value={filterDisp} onValueChange={setFilterDisp}>
@@ -122,7 +205,107 @@ export default function BancoTalentos() {
           value={filterLoc}
           onChange={(e) => setFilterLoc(e.target.value)}
         />
+        <Button variant="outline" onClick={() => setAdvancedOpen((v) => !v)}>
+          Filtros Avançados
+          {advancedOpen ? (
+            <ChevronUp className="ml-2 h-4 w-4" />
+          ) : (
+            <ChevronDown className="ml-2 h-4 w-4" />
+          )}
+        </Button>
       </div>
+
+      {/* Filtros avançados (colapsáveis) */}
+      {advancedOpen && (
+        <Card>
+          <CardContent className="space-y-4 p-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Cidade</Label>
+                <Input
+                  placeholder="Cidade..."
+                  value={filterCidade}
+                  onChange={(e) => setFilterCidade(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Bairro</Label>
+                <Input
+                  placeholder="Bairro..."
+                  value={filterBairro}
+                  onChange={(e) => setFilterBairro(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Disponibilidade de Horário</Label>
+                <Input
+                  placeholder="Disponibilidade de horário..."
+                  value={filterDispHorario}
+                  onChange={(e) => setFilterDispHorario(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Curso de Cuidador</Label>
+                <Input
+                  placeholder="Curso de cuidador..."
+                  value={filterCurso}
+                  onChange={(e) => setFilterCurso(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Turno</Label>
+                <Select value={filterTurno} onValueChange={setFilterTurno}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Turno" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="12h">12h</SelectItem>
+                    <SelectItem value="24h">24h</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Experiência ILPI</Label>
+                <Input
+                  placeholder="Experiência ILPI..."
+                  value={filterExpIlp}
+                  onChange={(e) => setFilterExpIlp(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Início Imediato</Label>
+                <Input
+                  placeholder="Início imediato..."
+                  value={filterInicioImediato}
+                  onChange={(e) => setFilterInicioImediato(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Tag</Label>
+                <Select value={filterTag} onValueChange={setFilterTag}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Tag" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas</SelectItem>
+                    {availableTags.map((t) => (
+                      <SelectItem key={t} value={t}>
+                        {t}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="flex justify-end">
+              <Button variant="ghost" size="sm" onClick={clearAdvanced}>
+                Limpar filtros avançados
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {loading ? (
         <p className="text-center text-muted-foreground py-8">Carregando...</p>
@@ -167,7 +350,11 @@ export default function BancoTalentos() {
                     </Badge>
                   )}
                 </div>
+
+                {parseTags(c.tags).length > 0 && <TagBadges tags={c.tags} />}
+
                 <div className="flex justify-end gap-1">
+                  <TagEditor tags={c.tags} onChange={(tags) => handleTagsChange(c, tags)} />
                   <Button
                     variant="ghost"
                     size="icon"
