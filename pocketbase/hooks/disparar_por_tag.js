@@ -103,7 +103,7 @@ routerAdd(
       if (!phone) continue
       var corpo2 = substituir(corpoTpl, nome2)
       var link = 'https://wa.me/' + phone + '?text=' + encodeURIComponent(corpo2)
-      results.push({ nome: nome2, telefone: telefone, link: link })
+      results.push({ nome: nome2, telefone: telefone, link: link, success: true })
     }
     return e.json(200, { results: results, total: alvo.length })
   },
