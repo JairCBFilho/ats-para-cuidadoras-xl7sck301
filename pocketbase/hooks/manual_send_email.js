@@ -12,7 +12,7 @@ routerAdd(
     try {
       var client = $app.newMailClient()
       client.send({
-        from: { name: 'CuidarATS', address: 'noreply@cuidarats.com' },
+        from: { name: 'Lazuli ATS', address: 'noreply@lazuliats.com' },
         to: [{ name: toName, address: to }],
         subject: subject,
         html: html,

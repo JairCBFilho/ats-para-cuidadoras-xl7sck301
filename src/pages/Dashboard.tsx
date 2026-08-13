@@ -246,7 +246,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Linha 1 — métricas existentes com estilo Crextio */}
+      {/* Linha 1 — métricas existentes com estilo Lazuli */}
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="p-6">
           <div className="flex items-center justify-between">

@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { useAuth } from '@/hooks/use-auth'
 import { NotificationBell } from '@/components/NotificationBell'
+import lazuliLogo from '@/assets/simbolo-lazuli-cmyk-fundo-azul-f722e.jpg'
 
 const navItems = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -71,9 +72,13 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   }
   return (
     <div className="flex h-full flex-col bg-sidebar">
-      <div className="flex items-center gap-2 px-6 py-6">
-        <Heart className="h-8 w-8 text-primary" />
-        <span className="text-lg font-bold">CuidarATS</span>
+      <div className="flex items-center gap-3 px-6 py-6">
+        <img
+          src={lazuliLogo}
+          alt="Lazuli Logo"
+          className="h-8 w-8 rounded-full object-cover shadow-sm"
+        />
+        <span className="text-lg font-bold">Lazuli ATS</span>
       </div>
       <NavLinks onNavigate={onNavigate} />
       <div className="border-t border-sidebar-border p-3">
@@ -107,17 +112,19 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f8f6f0] via-[#f5f2eb] to-[#e8e2d5] text-foreground font-sans p-4 md:p-6 flex flex-col antialiased">
-      {/* Container estilo "App / Soft Window" do Crextio */}
+      {/* Container estilo "App / Soft Window" do Lazuli */}
       <div className="flex-1 flex flex-col bg-[#f7f5ee]/90 backdrop-blur-md rounded-[2.5rem] border border-white/80 shadow-2xl overflow-hidden max-w-[1600px] w-full mx-auto">
-        {/* Header estilo Crextio com Pill Nav */}
+        {/* Header estilo Lazuli com Pill Nav */}
         <header className="flex items-center justify-between px-6 py-4 border-b border-black/5 bg-white/40 backdrop-blur-sm gap-4 flex-wrap">
           {/* Logo / Brand */}
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-black flex items-center justify-center text-amber-400 font-extrabold text-xl shadow-md border border-amber-400/20">
-              C
-            </div>
+            <img
+              src={lazuliLogo}
+              alt="Lazuli Logo"
+              className="h-10 w-10 rounded-full object-cover shadow-md border border-black/10"
+            />
             <span className="font-extrabold text-xl tracking-tight text-black">
-              Crextio{' '}
+              Lazuli{' '}
               <span className="text-xs font-normal text-muted-foreground px-2 py-0.5 bg-amber-400/20 border border-amber-400/40 rounded-full text-black font-semibold">
                 ATS
               </span>
@@ -175,10 +182,12 @@ export default function Layout() {
                 >
                   <div className="space-y-6">
                     <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-black flex items-center justify-center text-amber-400 font-bold text-xl">
-                        C
-                      </div>
-                      <span className="font-bold text-lg">Crextio ATS</span>
+                      <img
+                        src={lazuliLogo}
+                        alt="Lazuli Logo"
+                        className="h-10 w-10 rounded-full object-cover shadow-sm"
+                      />
+                      <span className="font-bold text-lg">Lazuli ATS</span>
                     </div>
                     <div className="space-y-2">
                       {navItems.map((item) => (

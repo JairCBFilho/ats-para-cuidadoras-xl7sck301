@@ -80,7 +80,7 @@ routerAdd(
           var corpo = substituir(corpoTpl, nome)
           var client = $app.newMailClient()
           client.send({
-            from: { name: 'CuidarATS', address: 'noreply@cuidarats.com' },
+            from: { name: 'Lazuli ATS', address: 'noreply@lazuliats.com' },
             to: [{ name: nome, address: email }],
             subject: assunto,
             html: corpo,

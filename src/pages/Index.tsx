@@ -72,7 +72,7 @@ export default function Index() {
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
-      {/* Top Welcome Header - Crextio style */}
+      {/* Top Welcome Header - Lazuli style */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-black">
@@ -83,7 +83,7 @@ export default function Index() {
           </p>
         </div>
 
-        {/* Minimal Numerical Indicators (Top Right in Crextio visual) */}
+        {/* Minimal Numerical Indicators (Top Right in Lazuli visual) */}
         <div className="flex items-center gap-6 bg-white/80 backdrop-blur-sm px-6 py-3 rounded-full border border-black/10 shadow-sm">
           <div className="flex items-center gap-3">
             <div className="h-8 w-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-700">
@@ -127,7 +127,7 @@ export default function Index() {
         </div>
       </div>
 
-      {/* Main Crextio Grid Layout */}
+      {/* Main Lazuli Grid Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left / Central Column: Metrics and Progress Bars */}
         <div className="lg:col-span-8 space-y-6">
@@ -153,7 +153,7 @@ export default function Index() {
                     {stats.aprovada} de {stats.totalCandidatas}
                   </span>
                 </div>
-                {/* Yellow rounded progress bar as shown in Crextio */}
+                {/* Yellow rounded progress bar as shown in Lazuli */}
                 <div className="h-4 w-full bg-amber-100 rounded-full p-0.5 overflow-hidden">
                   <div
                     className="h-full bg-amber-400 rounded-full transition-all duration-500 shadow-sm"
@@ -295,7 +295,7 @@ export default function Index() {
           </Card>
         </div>
 
-        {/* Right Column: Dark Card "Onboarding / Task List" exact like Crextio image */}
+        {/* Right Column: Dark Card "Onboarding / Task List" exact like Lazuli image */}
         <div className="lg:col-span-4 space-y-6">
           <div className="bg-[#1e1e1e] text-white rounded-[2rem] p-6 shadow-2xl border border-neutral-800 space-y-6">
             <div className="flex items-center justify-between">

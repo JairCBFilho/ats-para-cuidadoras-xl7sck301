@@ -9,7 +9,7 @@
 
 @layer base {
   :root {
-    /* Crextio Soft UI Theme — Cream/Ice background, Black primary, Yellow accent */
+    /* Lazuli Soft UI Theme — Cream/Ice background, Black primary, Yellow accent */
     --background: 40 30% 96%;
     --foreground: 0 0% 12%;
 
@@ -57,7 +57,7 @@
   }
 
   .dark {
-    /* Crextio dark theme */
+    /* Lazuli dark theme */
     --background: 0 0% 8%;
     --foreground: 0 0% 95%;
 

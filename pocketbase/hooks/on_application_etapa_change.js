@@ -70,32 +70,32 @@ onRecordAfterUpdateSuccess((e) => {
   } else {
     var defaults = {
       Triagem: {
-        assunto: 'CuidarATS - Sua candidatura esta em triagem',
+        assunto: 'Lazuli ATS - Sua candidatura esta em triagem',
         corpo:
           '<h2>Ola, ' +
           nome +
-          '!</h2><p>Sua candidatura foi atualizada para <strong>Triagem</strong>.</p><p>Em breve entraremos em contato.</p><p>Equipe CuidarATS</p>',
+          '!</h2><p>Sua candidatura foi atualizada para <strong>Triagem</strong>.</p><p>Em breve entraremos em contato.</p><p>Equipe Lazuli ATS</p>',
       },
       Entrevista: {
-        assunto: 'CuidarATS - Voce foi convocada para entrevista!',
+        assunto: 'Lazuli ATS - Voce foi convocada para entrevista!',
         corpo:
           '<h2>Ola, ' +
           nome +
-          '!</h2><p>Parabens! Sua candidatura avancou para <strong>Entrevista</strong>.</p><p>Entraremos em contato para agendar.</p><p>Equipe CuidarATS</p>',
+          '!</h2><p>Parabens! Sua candidatura avancou para <strong>Entrevista</strong>.</p><p>Entraremos em contato para agendar.</p><p>Equipe Lazuli ATS</p>',
       },
       Aprovada: {
-        assunto: 'CuidarATS - Parabens, voce foi aprovada!',
+        assunto: 'Lazuli ATS - Parabens, voce foi aprovada!',
         corpo:
           '<h2>Ola, ' +
           nome +
-          '!</h2><p>Voce foi <strong>aprovada</strong>!</p><p>Em breve entraremos em contato.</p><p>Equipe CuidarATS</p>',
+          '!</h2><p>Voce foi <strong>aprovada</strong>!</p><p>Em breve entraremos em contato.</p><p>Equipe Lazuli ATS</p>',
       },
       Rejeitada: {
-        assunto: 'CuidarATS - Atualizacao sobre sua candidatura',
+        assunto: 'Lazuli ATS - Atualizacao sobre sua candidatura',
         corpo:
           '<h2>Ola, ' +
           nome +
-          '.</h2><p>Agradecemos o seu interesse. Infelizmente nao foi possivel dar continuidade.</p><p>Equipe CuidarATS</p>',
+          '.</h2><p>Agradecemos o seu interesse. Infelizmente nao foi possivel dar continuidade.</p><p>Equipe Lazuli ATS</p>',
       },
     }
     var def = defaults[newEtapa]
@@ -120,7 +120,7 @@ onRecordAfterUpdateSuccess((e) => {
   try {
     var client = $app.newMailClient()
     client.send({
-      from: { name: 'CuidarATS', address: 'noreply@cuidarats.com' },
+      from: { name: 'Lazuli ATS', address: 'noreply@lazuliats.com' },
       to: [{ name: nome, address: email }],
       subject: assunto,
       html: corpo,

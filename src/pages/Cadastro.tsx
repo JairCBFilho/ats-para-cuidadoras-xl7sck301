@@ -20,6 +20,7 @@ import {
   submitCadastroPublico,
 } from '@/services/cadastro-publico'
 import { useToast } from '@/hooks/use-toast'
+import lazuliLogo from '@/assets/simbolo-lazuli-cmyk-fundo-azul-f722e.jpg'
 import { cn } from '@/lib/utils'
 
 const UFS = [
@@ -219,7 +220,7 @@ export default function Cadastro() {
           <h1 className="text-2xl font-semibold text-neutral-900 mb-3">Acesso não autorizado</h1>
           <p className="text-neutral-600 leading-relaxed mb-6">
             Você precisa de um link válido com o token de cadastro para acessar esta página.
-            Solicite o link oficial à equipe Crextio e tente novamente.
+            Solicite o link oficial à equipe Lazuli e tente novamente.
           </p>
           <p className="text-sm text-neutral-400">
             Se você acredita que isto é um erro, entre em contato pelo canal oficial.
@@ -241,8 +242,8 @@ export default function Cadastro() {
             Cadastro recebido com sucesso!
           </h1>
           <p className="text-neutral-600 leading-relaxed mb-6">
-            Obrigada por se cadastrar no banco de talentos da Crextio. Nossa equipe irá analisar
-            suas informações e entrar em contato quando houver uma oportunidade compatível.
+            Obrigada por se cadastrar no banco de talentos da Lazuli. Nossa equipe irá analisar suas
+            informações e entrar em contato quando houver uma oportunidade compatível.
           </p>
           <p className="text-sm text-neutral-400">Você já pode fechar esta página.</p>
         </Card>
@@ -257,10 +258,12 @@ export default function Cadastro() {
         {/* Header */}
         <div className="text-center mb-10">
           <div className="inline-flex items-center gap-2 mb-4">
-            <div className="h-9 w-9 rounded-xl bg-neutral-900 flex items-center justify-center">
-              <span className="text-[#F5C518] font-bold text-lg">C</span>
-            </div>
-            <span className="text-xl font-semibold text-neutral-900">Crextio</span>
+            <img
+              src={lazuliLogo}
+              alt="Lazuli Logo"
+              className="h-10 w-10 rounded-xl object-cover shadow-sm"
+            />
+            <span className="text-xl font-semibold text-neutral-900">Lazuli</span>
           </div>
           <h1 className="text-3xl font-bold text-neutral-900 mb-2">Cadastro de Cuidadoras</h1>
           <p className="text-neutral-600 max-w-xl mx-auto">
@@ -747,7 +750,7 @@ export default function Cadastro() {
             </Button>
             <p className="text-xs text-neutral-400 text-center max-w-md">
               Ao enviar, você concorda em ter suas informações armazenadas no banco de talentos da
-              Crextio para futuras oportunidades.
+              Lazuli para futuras oportunidades.
             </p>
           </div>
         </form>

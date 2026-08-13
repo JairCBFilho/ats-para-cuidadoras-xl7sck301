@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Heart } from 'lucide-react'
+import lazuliLogo from '@/assets/simbolo-lazuli-cmyk-fundo-azul-f722e.jpg'
 
 export default function Login() {
   const { signIn, isAuthenticated, loading } = useAuth()
@@ -34,9 +34,13 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-accent/10 p-4">
       <Card className="w-full max-w-md animate-fade-in-up">
         <CardHeader className="space-y-3">
-          <div className="flex items-center gap-2">
-            <Heart className="h-8 w-8 text-primary" />
-            <span className="text-xl font-bold">CuidarATS</span>
+          <div className="flex items-center gap-3">
+            <img
+              src={lazuliLogo}
+              alt="Lazuli Logo"
+              className="h-9 w-9 rounded-full object-cover shadow-sm"
+            />
+            <span className="text-xl font-bold">Lazuli ATS</span>
           </div>
           <div>
             <CardTitle>Entrar</CardTitle>
