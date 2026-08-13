@@ -246,38 +246,46 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Linha 1 — métricas existentes */}
+      {/* Linha 1 — métricas existentes com estilo Crextio */}
       <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center gap-2 space-y-0">
-            <Users className="h-5 w-5 text-primary" />
-            <CardTitle className="text-sm font-medium">Total de candidaturas</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">{total}</p>
-          </CardContent>
+        <Card className="p-6">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-extrabold uppercase text-muted-foreground">
+              Total Candidaturas
+            </span>
+            <div className="h-9 w-9 rounded-full bg-black text-amber-400 flex items-center justify-center font-bold">
+              <Users className="h-4 w-4" />
+            </div>
+          </div>
+          <p className="text-4xl font-black text-black mt-4">{total}</p>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center gap-2 space-y-0">
-            <Target className="h-5 w-5 text-primary" />
-            <CardTitle className="text-sm font-medium">Taxa de aprovação</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">{approvalRate.toFixed(1)}%</p>
-            <p className="text-sm text-muted-foreground">{approvedCount} aprovadas</p>
-          </CardContent>
+        <Card className="p-6">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-extrabold uppercase text-muted-foreground">
+              Taxa de Aprovação
+            </span>
+            <div className="h-9 w-9 rounded-full bg-amber-400 text-black flex items-center justify-center font-bold">
+              <Target className="h-4 w-4" />
+            </div>
+          </div>
+          <p className="text-4xl font-black text-black mt-4">{approvalRate.toFixed(1)}%</p>
+          <p className="text-xs font-semibold text-muted-foreground mt-1">
+            {approvedCount} aprovadas
+          </p>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center gap-2 space-y-0">
-            <Clock className="h-5 w-5 text-primary" />
-            <CardTitle className="text-sm font-medium">Tempo médio no funil</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">
-              {avgTime.toFixed(1)}{' '}
-              <span className="text-base font-normal text-muted-foreground">dias</span>
-            </p>
-          </CardContent>
+        <Card className="p-6">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-extrabold uppercase text-muted-foreground">
+              Tempo Médio Funil
+            </span>
+            <div className="h-9 w-9 rounded-full bg-black text-amber-400 flex items-center justify-center font-bold">
+              <Clock className="h-4 w-4" />
+            </div>
+          </div>
+          <p className="text-4xl font-black text-black mt-4">
+            {avgTime.toFixed(1)}{' '}
+            <span className="text-sm font-semibold text-muted-foreground">dias</span>
+          </p>
         </Card>
       </div>
 
