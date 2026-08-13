@@ -75,6 +75,8 @@ export default function BancoTalentos() {
   const [filterDisp, setFilterDisp] = useState('all')
   const [filterEsp, setFilterEsp] = useState('')
   const [filterLoc, setFilterLoc] = useState('')
+  const [filterNome, setFilterNome] = useState('')
+  const [sortOrder, setSortOrder] = useState<'nome' | '-nome' | 'created' | '-created'>('-created')
 
   // Filtros avançados (colapsáveis)
   const [advancedOpen, setAdvancedOpen] = useState(false)
@@ -107,29 +109,45 @@ export default function BancoTalentos() {
   useEffect(() => {
     loadData()
   }, [])
-  useRealtime('cuidadores', () => loadData())
+  useRealtime('cuidadores', (e) => {
+    const record = e.record as unknown as Cuidador
+    if (e.action === 'create') setCuidadores((prev) => [record, ...prev])
+    else if (e.action === 'update')
+      setCuidadores((prev) => prev.map((c) => (c.id === record.id ? { ...record } : c)))
+    else if (e.action === 'delete') setCuidadores((prev) => prev.filter((c) => c.id !== record.id))
+  })
 
   const filtered = useMemo(() => {
     const contains = (field: string | undefined, query: string) =>
       !query || (field || '').toLowerCase().includes(query.toLowerCase())
 
-    return cuidadores.filter((c) => {
-      if (filterDisp !== 'all' && c.disponibilidade !== filterDisp) return false
-      if (!contains(c.especialidades, filterEsp)) return false
-      if (!contains(c.localizacao, filterLoc)) return false
-      // Avançados
-      if (!contains(c.cidade, filterCidade)) return false
-      if (!contains(c.bairro, filterBairro)) return false
-      if (!contains(c.disponibilidade_horario, filterDispHorario)) return false
-      if (!contains(c.curso_cuidador, filterCurso)) return false
-      if (filterTurno !== 'all' && c.turno !== filterTurno) return false
-      if (!contains(c.experiencia_ilp, filterExpIlp)) return false
-      if (!contains(c.inicio_imediato, filterInicioImediato)) return false
-      if (filterTag !== 'all' && !parseTags(c.tags).includes(filterTag)) return false
-      return true
-    })
+    return cuidadores
+      .filter((c) => {
+        if (!contains(c.nome, filterNome)) return false
+        if (filterDisp !== 'all' && c.disponibilidade !== filterDisp) return false
+        if (!contains(c.especialidades, filterEsp)) return false
+        if (!contains(c.localizacao, filterLoc)) return false
+        // Avançados
+        if (!contains(c.cidade, filterCidade)) return false
+        if (!contains(c.bairro, filterBairro)) return false
+        if (!contains(c.disponibilidade_horario, filterDispHorario)) return false
+        if (!contains(c.curso_cuidador, filterCurso)) return false
+        if (filterTurno !== 'all' && c.turno !== filterTurno) return false
+        if (!contains(c.experiencia_ilp, filterExpIlp)) return false
+        if (!contains(c.inicio_imediato, filterInicioImediato)) return false
+        if (filterTag !== 'all' && !parseTags(c.tags).includes(filterTag)) return false
+        return true
+      })
+      .sort((a, b) => {
+        if (sortOrder === 'nome') return a.nome.localeCompare(b.nome)
+        if (sortOrder === '-nome') return b.nome.localeCompare(a.nome)
+        if (sortOrder === 'created')
+          return new Date(a.created).getTime() - new Date(b.created).getTime()
+        return new Date(b.created).getTime() - new Date(a.created).getTime() // '-created' default
+      })
   }, [
     cuidadores,
+    filterNome,
     filterDisp,
     filterEsp,
     filterLoc,
@@ -141,6 +159,7 @@ export default function BancoTalentos() {
     filterExpIlp,
     filterInicioImediato,
     filterTag,
+    sortOrder,
   ])
 
   const handleDelete = async (id: string) => {
@@ -244,6 +263,12 @@ export default function BancoTalentos() {
 
       {/* Filtros básicos */}
       <div className="flex flex-wrap items-center gap-3">
+        <Input
+          className="w-56"
+          placeholder="Buscar por nome..."
+          value={filterNome}
+          onChange={(e) => setFilterNome(e.target.value)}
+        />
         <div className="w-48">
           <Select value={filterDisp} onValueChange={setFilterDisp}>
             <SelectTrigger>
@@ -268,6 +293,19 @@ export default function BancoTalentos() {
           value={filterLoc}
           onChange={(e) => setFilterLoc(e.target.value)}
         />
+        <div className="w-48">
+          <Select value={sortOrder} onValueChange={(v) => setSortOrder(v as typeof sortOrder)}>
+            <SelectTrigger>
+              <SelectValue placeholder="Ordenar por" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="-created">Mais recentes</SelectItem>
+              <SelectItem value="created">Mais antigos</SelectItem>
+              <SelectItem value="nome">A-Z</SelectItem>
+              <SelectItem value="-nome">Z-A</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
         <Button variant="outline" onClick={() => setAdvancedOpen((v) => !v)}>
           Filtros Avançados
           {advancedOpen ? (
