@@ -19,6 +19,7 @@ import ComunicacaoPorTag from '@/pages/ComunicacaoPorTag'
 import Login from '@/pages/Login'
 import Signup from '@/pages/Signup'
 import NotFound from '@/pages/NotFound'
+import Cadastro from '@/pages/Cadastro'
 
 const App = () => (
   <BrowserRouter>
@@ -29,6 +30,7 @@ const App = () => (
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/cadastro" element={<Cadastro />} />
           <Route element={<ProtectedRoute />}>
             <Route element={<Layout />}>
               <Route path="/" element={<Index />} />

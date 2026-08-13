@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-13T00:03:12.353Z",
+  "generatedAt": "2026-08-13T00:29:55.635Z",
   "collections": [
     {
       "name": "users",
@@ -170,7 +170,15 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["Indicação", "LinkedIn", "Instagram", "Site", "WhatsApp", "Outro"]
+          "selectValues": [
+            "Indicação",
+            "LinkedIn",
+            "Instagram",
+            "Site",
+            "WhatsApp",
+            "Outro",
+            "Formulário público"
+          ]
         },
         {
           "name": "foto",
@@ -575,6 +583,12 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "token_cadastro",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": []
@@ -703,7 +717,15 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["Indicação", "LinkedIn", "Instagram", "Site", "WhatsApp", "Outro"]
+          "selectValues": [
+            "Indicação",
+            "LinkedIn",
+            "Instagram",
+            "Site",
+            "WhatsApp",
+            "Outro",
+            "Formulário público"
+          ]
         },
         {
           "name": "foto",

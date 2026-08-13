@@ -3,6 +3,7 @@ import pb from '@/lib/pocketbase/client'
 export interface Configuracoes {
   id: string
   canal_manual: 'email' | 'whatsapp'
+  token_cadastro?: string
   created: string
   updated: string
 }
