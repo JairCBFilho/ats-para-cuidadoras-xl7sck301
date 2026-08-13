@@ -7,6 +7,7 @@ export type EtapaEmail =
   | 'Rejeitada'
   | 'AtualizacaoCadastro'
   | 'VerificacaoDisponibilidade'
+  | 'LembreteEntrevista'
 
 /** Rótulos de exibição legíveis para cada etapa de comunicação. */
 export const ETAPA_LABELS: Record<EtapaEmail, string> = {
@@ -16,6 +17,7 @@ export const ETAPA_LABELS: Record<EtapaEmail, string> = {
   Rejeitada: 'Rejeitada',
   AtualizacaoCadastro: 'Atualização de Cadastro',
   VerificacaoDisponibilidade: 'Verificação de Disponibilidade',
+  LembreteEntrevista: 'Lembrete de Entrevista',
 }
 
 export interface EmailTemplate {

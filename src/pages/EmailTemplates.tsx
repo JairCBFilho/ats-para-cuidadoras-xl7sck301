@@ -25,8 +25,9 @@ const STAGES: EtapaEmail[] = [
   'Rejeitada',
   'AtualizacaoCadastro',
   'VerificacaoDisponibilidade',
+  'LembreteEntrevista',
 ]
-const VARIABLES = ['{nome_candidata}', '{cargo}', '{etapa}']
+const VARIABLES = ['{nome_candidata}', '{cargo}', '{etapa}', '{nome_vaga}', '{data_entrevista}']
 
 interface TemplateForm {
   id?: string

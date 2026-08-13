@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-13T01:19:39.498Z",
+  "generatedAt": "2026-08-13T01:56:32.070Z",
   "collections": [
     {
       "name": "users",
@@ -282,6 +282,12 @@
           "type": "text",
           "required": false,
           "system": false
+        },
+        {
+          "name": "lembrete_enviado",
+          "type": "bool",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
@@ -440,7 +446,8 @@
             "Aprovada",
             "Rejeitada",
             "AtualizacaoCadastro",
-            "VerificacaoDisponibilidade"
+            "VerificacaoDisponibilidade",
+            "LembreteEntrevista"
           ]
         },
         {

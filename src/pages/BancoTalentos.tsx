@@ -11,6 +11,9 @@ import {
   ChevronDown,
   ChevronUp,
   Send,
+  Download,
+  FileSpreadsheet,
+  FileType,
 } from 'lucide-react'
 import { ImportCsvDialog } from '@/components/ImportCsvDialog'
 import { ImportCurriculoDialog } from '@/components/ImportCurriculoDialog'
@@ -39,8 +42,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from '@/components/ui/dropdown-menu'
 import { toast } from 'sonner'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
+import { exportCuidadoresExcel, exportCuidadoresPDF } from '@/lib/export-talentos'
 
 function CuidadorPhoto({ cuidador }: { cuidador: Cuidador }) {
   const photoUrl = useFileUrl(cuidador, cuidador.foto)
@@ -180,6 +190,47 @@ export default function BancoTalentos() {
           <Button variant="outline" onClick={() => setImportCurriculoOpen(true)}>
             <FileText className="mr-2 h-4 w-4" /> Importar Currículo (PDF)
           </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">
+                <Download className="mr-2 h-4 w-4" /> Exportar
+                <ChevronDown className="ml-2 h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              className="rounded-3xl border-black/10 bg-[var(--background)] p-1 shadow-lg"
+            >
+              <DropdownMenuItem
+                className="rounded-2xl px-3 py-2 focus:bg-amber-300/40"
+                onSelect={() => {
+                  try {
+                    exportCuidadoresExcel(filtered)
+                    toast.success(`Excel gerado com ${filtered.length} cuidador(a)`)
+                  } catch (err) {
+                    toast.error(getErrorMessage(err))
+                  }
+                }}
+              >
+                <FileSpreadsheet className="mr-2 h-4 w-4" />
+                Exportar Excel (.xlsx)
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="rounded-2xl px-3 py-2 focus:bg-amber-300/40"
+                onSelect={() => {
+                  try {
+                    exportCuidadoresPDF(filtered)
+                    toast.success(`PDF gerado com ${filtered.length} cuidador(a)`)
+                  } catch (err) {
+                    toast.error(getErrorMessage(err))
+                  }
+                }}
+              >
+                <FileType className="mr-2 h-4 w-4" />
+                Exportar PDF
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button
             onClick={() => {
               setEditing(null)

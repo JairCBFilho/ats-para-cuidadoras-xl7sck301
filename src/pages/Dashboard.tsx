@@ -28,12 +28,22 @@ import {
 
 const STAGES = ['Triagem', 'Entrevista', 'Aprovada', 'Rejeitada'] as const
 
+type Periodo = '7' | '30' | '90' | 'all'
+
+// Retorna o timestamp (ms) de início do período selecionado, ou null para "Todos".
+function periodoStart(periodo: Periodo): number | null {
+  if (periodo === 'all') return null
+  const dias = Number(periodo)
+  return Date.now() - dias * 24 * 60 * 60 * 1000
+}
+
 export default function Dashboard() {
   const [apps, setApps] = useState<Application[]>([])
   const [candidatas, setCandidatas] = useState<Candidata[]>([])
   const [cuidadores, setCuidadores] = useState<Cuidador[]>([])
   const [vagas, setVagas] = useState<Vaga[]>([])
   const [vagaSelecionada, setVagaSelecionada] = useState<string>('all')
+  const [periodo, setPeriodo] = useState<Periodo>('all')
   const [loading, setLoading] = useState(true)
 
   const load = useCallback(async () => {
@@ -67,18 +77,34 @@ export default function Dashboard() {
   // Os talentos (cuidadores) não são filtrados por vaga diretamente — eles são
   // filtrados indiretamente pelas candidaturas vinculadas (conversão).
   const vagaFiltrada = vagaSelecionada !== 'all'
-  const appsFiltradas = useMemo(
-    () => (vagaFiltrada ? apps.filter((a) => a.vaga === vagaSelecionada) : apps),
-    [apps, vagaFiltrada, vagaSelecionada],
-  )
+  const periodoIni = useMemo(() => periodoStart(periodo), [periodo])
+
+  // Aplica o filtro de período (por `created`) combinado com o filtro de vaga.
+  const appsFiltradas = useMemo(() => {
+    const ini = periodoIni
+    return apps.filter((a) => {
+      if (vagaFiltrada && a.vaga !== vagaSelecionada) return false
+      if (ini !== null && new Date(a.created).getTime() < ini) return false
+      return true
+    })
+  }, [apps, vagaFiltrada, vagaSelecionada, periodoIni])
+
+  // Candidatas do período (por `created`). Usado para "Talentos novos no banco"
+  // e para origens/fontes quando nenhuma vaga está selecionada.
+  const candidatasPeriodo = useMemo(() => {
+    const ini = periodoIni
+    if (ini === null) return candidatas
+    return candidatas.filter((c) => new Date(c.created).getTime() >= ini)
+  }, [candidatas, periodoIni])
 
   // Quando uma vaga específica está selecionada, restringimos as candidatas
-  // consideradas às que possuem candidatura naquela vaga. Isso filtra as fontes.
+  // consideradas às que possuem candidatura naquela vaga (no período). Isso
+  // filtra as fontes.
   const candidatasDaVaga = useMemo(() => {
-    if (!vagaFiltrada) return candidatas
+    if (!vagaFiltrada) return candidatasPeriodo
     const ids = new Set(appsFiltradas.map((a) => a.candidata))
-    return candidatas.filter((c) => ids.has(c.id))
-  }, [candidatas, appsFiltradas, vagaFiltrada])
+    return candidatasPeriodo.filter((c) => ids.has(c.id))
+  }, [candidatasPeriodo, appsFiltradas, vagaFiltrada])
 
   // Métricas existentes (applications + candidatas)
   const total = appsFiltradas.length
@@ -108,27 +134,39 @@ export default function Dashboard() {
   const maxSource = Math.max(...Object.values(sourceStats), 1)
 
   // Novas métricas (cuidadores)
-  // Talentos: quando uma vaga está selecionada, mostramos os talentos que têm
-  // candidatura naquela vaga (via candidata vinculada por email/cpf).
+  // Cuidadores do período (por `created`) — "Talentos novos no banco".
+  const cuidadoresPeriodo = useMemo(() => {
+    const ini = periodoIni
+    if (ini === null) return cuidadores
+    return cuidadores.filter((c) => new Date(c.created).getTime() >= ini)
+  }, [cuidadores, periodoIni])
+
+  // Talentos: quando uma vaga está selecionada, mostramos os talentos do período
+  // que têm candidatura naquela vaga (via candidata vinculada por email/cpf).
   const totalTalentos = useMemo(() => {
-    if (!vagaFiltrada) return cuidadores.length
+    if (!vagaFiltrada) return cuidadoresPeriodo.length
     const candIdsDaVaga = new Set(appsFiltradas.map((a) => a.candidata))
     const candEmails = new Set(
-      candidatas.filter((c) => candIdsDaVaga.has(c.id)).map((c) => (c.email || '').toLowerCase()),
+      candidatasPeriodo
+        .filter((c) => candIdsDaVaga.has(c.id))
+        .map((c) => (c.email || '').toLowerCase()),
     )
-    return cuidadores.filter((c) => candEmails.has((c.email || '').toLowerCase())).length
-  }, [cuidadores, candidatas, appsFiltradas, vagaFiltrada])
+    return cuidadoresPeriodo.filter((c) => candEmails.has((c.email || '').toLowerCase())).length
+  }, [cuidadoresPeriodo, candidatasPeriodo, appsFiltradas, vagaFiltrada])
 
   const talentosDisponiveis = useMemo(() => {
-    if (!vagaFiltrada) return cuidadores.filter((c) => c.disponibilidade === 'disponível').length
+    if (!vagaFiltrada)
+      return cuidadoresPeriodo.filter((c) => c.disponibilidade === 'disponível').length
     const candIdsDaVaga = new Set(appsFiltradas.map((a) => a.candidata))
     const candEmails = new Set(
-      candidatas.filter((c) => candIdsDaVaga.has(c.id)).map((c) => (c.email || '').toLowerCase()),
+      candidatasPeriodo
+        .filter((c) => candIdsDaVaga.has(c.id))
+        .map((c) => (c.email || '').toLowerCase()),
     )
-    return cuidadores.filter(
+    return cuidadoresPeriodo.filter(
       (c) => candEmails.has((c.email || '').toLowerCase()) && c.disponibilidade === 'disponível',
     ).length
-  }, [cuidadores, candidatas, appsFiltradas, vagaFiltrada])
+  }, [cuidadoresPeriodo, candidatasPeriodo, appsFiltradas, vagaFiltrada])
 
   // Top 5 cidades — agrupamento case-insensitive, com nome normalizado para exibição.
   // Primeira letra de cada palavra em maiúscula (ex: "rio de janeiro" -> "Rio de Janeiro").
@@ -149,14 +187,17 @@ export default function Dashboard() {
 
   // Quando uma vaga está selecionada, consideramos apenas as cuidadoras
   // vinculadas às candidatas daquela vaga para as métricas de cidades e turnos.
+  // Sempre respeitamos o filtro de período (por `created` dos cuidadores).
   const cuidadoresParaAgregados = useMemo(() => {
-    if (!vagaFiltrada) return cuidadores
+    if (!vagaFiltrada) return cuidadoresPeriodo
     const candIdsDaVaga = new Set(appsFiltradas.map((a) => a.candidata))
     const candEmails = new Set(
-      candidatas.filter((c) => candIdsDaVaga.has(c.id)).map((c) => (c.email || '').toLowerCase()),
+      candidatasPeriodo
+        .filter((c) => candIdsDaVaga.has(c.id))
+        .map((c) => (c.email || '').toLowerCase()),
     )
-    return cuidadores.filter((c) => candEmails.has((c.email || '').toLowerCase()))
-  }, [cuidadores, candidatas, appsFiltradas, vagaFiltrada])
+    return cuidadoresPeriodo.filter((c) => candEmails.has((c.email || '').toLowerCase()))
+  }, [cuidadoresPeriodo, candidatasPeriodo, appsFiltradas, vagaFiltrada])
 
   // Conta por chave lowercase; guarda o nome normalizado para exibição.
   const cidadesCount: Record<string, number> = {}
@@ -173,21 +214,22 @@ export default function Dashboard() {
     .map(([chave, count]) => [cidadesNome[chave], count] as [string, number])
   const maxCidade = Math.max(...topCidades.map(([, n]) => n), 1)
 
-  // Taxa de conversão: % de cuidadores com pelo menos uma candidatura
-  // (cuidador cujo email ou cpf também existe em uma candidata que tem application)
+  // Taxa de conversão: % de cuidadores do período com pelo menos uma candidatura
+  // no período (cuidador cujo email ou cpf também existe em uma candidata que
+  // tem application dentro do período/vaga selecionados).
   const conversao = useMemo(() => {
-    const baseCuidadores = vagaFiltrada ? cuidadoresParaAgregados : cuidadores
+    const baseCuidadores = vagaFiltrada ? cuidadoresParaAgregados : cuidadoresPeriodo
     if (baseCuidadores.length === 0) return 0
     // Mapa de candidatas por email e por cpf (lowercase), e ids de candidatas com application
     const candByEmail = new Map<string, string>() // email -> candidata.id
     const candByCpf = new Map<string, string>() // cpf -> candidata.id
-    candidatas.forEach((c) => {
+    candidatasPeriodo.forEach((c) => {
       const email = (c.email || '').toLowerCase()
       if (email) candByEmail.set(email, c.id)
     })
     // candidatas também podem possuir cpf (importação CSV); o tipo Candidata não expõe,
     // mas o registro PocketBase pode conter — usamos acesso seguro.
-    candidatas.forEach((c) => {
+    candidatasPeriodo.forEach((c) => {
       const cpf = String((c as unknown as Record<string, unknown>).cpf || '').toLowerCase()
       if (cpf) candByCpf.set(cpf, c.id)
     })
@@ -207,7 +249,7 @@ export default function Dashboard() {
       }
     })
     return (comApp / baseCuidadores.length) * 100
-  }, [cuidadores, cuidadoresParaAgregados, candidatas, appsFiltradas, vagaFiltrada])
+  }, [cuidadoresPeriodo, cuidadoresParaAgregados, candidatasPeriodo, appsFiltradas, vagaFiltrada])
 
   // Distribuição por turno
   const turno12 = cuidadoresParaAgregados.filter((c) => c.turno === '12h').length
@@ -225,24 +267,42 @@ export default function Dashboard() {
           <h1 className="text-2xl font-bold">Dashboard de Métricas</h1>
           <p className="text-muted-foreground">Visão geral do funil de recrutamento</p>
         </div>
-        <div className="w-full sm:w-72">
-          <Label htmlFor="vaga-filter" className="text-xs text-muted-foreground">
-            Filtrar por vaga
-          </Label>
-          <Select value={vagaSelecionada} onValueChange={setVagaSelecionada}>
-            <SelectTrigger id="vaga-filter">
-              <SelectValue placeholder="Todas as vagas" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas as vagas</SelectItem>
-              {vagas.map((v) => (
-                <SelectItem key={v.id} value={v.id}>
-                  {v.cargo}
-                  {v.localizacao ? ` — ${v.localizacao}` : ''}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="w-full sm:w-72">
+            <Label htmlFor="vaga-filter" className="text-xs text-muted-foreground">
+              Filtrar por vaga
+            </Label>
+            <Select value={vagaSelecionada} onValueChange={setVagaSelecionada}>
+              <SelectTrigger id="vaga-filter">
+                <SelectValue placeholder="Todas as vagas" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as vagas</SelectItem>
+                {vagas.map((v) => (
+                  <SelectItem key={v.id} value={v.id}>
+                    {v.cargo}
+                    {v.localizacao ? ` — ${v.localizacao}` : ''}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="w-full sm:w-44">
+            <Label htmlFor="periodo-filter" className="text-xs text-muted-foreground">
+              Período
+            </Label>
+            <Select value={periodo} onValueChange={(v) => setPeriodo(v as Periodo)}>
+              <SelectTrigger id="periodo-filter">
+                <SelectValue placeholder="Todos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="7">Últimos 7 dias</SelectItem>
+                <SelectItem value="30">Últimos 30 dias</SelectItem>
+                <SelectItem value="90">Últimos 90 dias</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
@@ -294,10 +354,15 @@ export default function Dashboard() {
         <Card>
           <CardHeader className="flex flex-row items-center gap-2 space-y-0">
             <Database className="h-5 w-5 text-primary" />
-            <CardTitle className="text-sm font-medium">Total de talentos no banco</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              {periodo === 'all' ? 'Total de talentos no banco' : 'Talentos novos no banco'}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold">{totalTalentos}</p>
+            {periodo !== 'all' && (
+              <p className="text-sm text-muted-foreground">últimos {periodo} dias</p>
+            )}
           </CardContent>
         </Card>
         <Card>
