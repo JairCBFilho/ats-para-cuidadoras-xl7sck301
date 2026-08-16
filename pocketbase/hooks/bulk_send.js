@@ -30,7 +30,7 @@ routerAdd(
         var candidata = $app.findRecordById('candidatas', candidataId)
         var nome = candidata.getString('nome')
         var email = candidata.getString('email')
-        var telefone = candidata.getString('telefone')
+        var telefone = candidata.getString('celular') || candidata.getString('telefone') || ''
 
         var assunto = 'Notificacao - ' + etapa
         var corpo = ''

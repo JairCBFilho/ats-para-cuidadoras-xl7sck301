@@ -98,7 +98,7 @@ routerAdd(
     for (var k = 0; k < alvo.length; k++) {
       var cuid2 = alvo[k]
       var nome2 = cuid2.getString('nome')
-      var telefone = cuid2.getString('telefone') || cuid2.getString('celular') || ''
+      var telefone = cuid2.getString('celular') || cuid2.getString('telefone') || ''
       var phone = String(telefone).replace(/[^\d]/g, '')
       if (!phone) continue
       var corpo2 = substituir(corpoTpl, nome2)
