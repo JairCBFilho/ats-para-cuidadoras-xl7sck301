@@ -7,6 +7,12 @@ interface AuthContextType {
   signUp: (name: string, email: string, password: string) => Promise<{ error: any }>
   signIn: (email: string, password: string) => Promise<{ error: any }>
   signOut: () => void
+  requestPasswordReset: (email: string) => Promise<{ success: boolean; error: any }>
+  confirmPasswordReset: (
+    token: string,
+    password: string,
+    passwordConfirm: string,
+  ) => Promise<{ success: boolean; error: any }>
   loading: boolean
 }
 
@@ -65,8 +71,38 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     pb.authStore.clear()
   }
 
+  const requestPasswordReset = async (email: string) => {
+    try {
+      await pb.collection('users').requestPasswordReset(email)
+      return { success: true, error: null }
+    } catch (error) {
+      return { success: false, error }
+    }
+  }
+
+  const confirmPasswordReset = async (token: string, password: string, passwordConfirm: string) => {
+    try {
+      await pb.collection('users').confirmPasswordReset(token, password, passwordConfirm)
+      pb.authStore.clear()
+      return { success: true, error: null }
+    } catch (error) {
+      return { success: false, error }
+    }
+  }
+
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, signUp, signIn, signOut, loading }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isAuthenticated,
+        signUp,
+        signIn,
+        signOut,
+        requestPasswordReset,
+        confirmPasswordReset,
+        loading,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   )

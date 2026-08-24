@@ -18,6 +18,7 @@ import BancoTalentos from '@/pages/BancoTalentos'
 import ComunicacaoPorTag from '@/pages/ComunicacaoPorTag'
 import Login from '@/pages/Login'
 import Signup from '@/pages/Signup'
+import ResetPassword from '@/pages/ResetPassword'
 import NotFound from '@/pages/NotFound'
 import Cadastro from '@/pages/Cadastro'
 
@@ -30,6 +31,7 @@ const App = () => (
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/cadastro" element={<Cadastro />} />
           <Route element={<ProtectedRoute />}>
             <Route element={<Layout />}>
