@@ -216,14 +216,36 @@ routerAdd('POST', '/backend/v1/cadastro-publico', (e) => {
     curriculoFiles = e.findUploadedFiles('curriculo') || []
   } catch (_) {}
 
-  // --- Upsert por CPF ---
+  // --- Regra de CPF (decisão do Jair, 26/09) ---
   var col = $app.findCollectionByNameOrId('cuidadores')
   var record = null
+  var isDuplicate = false
   try {
     var found = $app.findRecordsByFilter('cuidadores', 'cpf = {:cpf}', 'created', 1, 0, {
       cpf: cpf,
     })
-    if (found.length > 0) record = found[0]
+    if (found.length > 0) {
+      var existingEmail = String(found[0].getString('email') || '')
+        .trim()
+        .toLowerCase()
+      var isPlaceholder = existingEmail.indexOf('@importacao.local') !== -1
+      if (existingEmail === email || isPlaceholder) {
+        // Mesma pessoa (ou cadastro importado sem e-mail real) -> atualiza
+        record = found[0]
+      } else {
+        // E-mail diferente -> duplicata para revisão; original intocado
+        isDuplicate = true
+        $app
+          .logger()
+          .warn(
+            'cadastro-publico: CPF existente com e-mail diferente — duplicata criada',
+            'cpf',
+            cpf.substring(0, 3) + '***' + cpf.substring(9),
+            'email_novo',
+            email,
+          )
+      }
+    }
   } catch (_) {
     record = null
   }
