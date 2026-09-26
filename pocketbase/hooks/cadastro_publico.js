@@ -2,7 +2,10 @@ routerAdd('POST', '/backend/v1/cadastro-publico', (e) => {
   // ===== Cadastro público de cuidadoras com token =====
   // Rota pública (sem autenticação). Valida token contra o registro em `configuracoes`.
   // Rate limiting: máximo 5 envios por minuto por IP (via $app.store()).
-  // Upsert por CPF. Resposta genérica sempre que o token for válido.
+  // CPF existente com o MESMO e-mail (ou placeholder de importação) -> atualiza.
+  // CPF existente com e-mail DIFERENTE -> cria DUPLICATA marcada com a tag
+  // "duplicata" para revisão manual no Banco de Talentos (o original fica intacto).
+  // Resposta genérica sempre que o token for válido.
 
   // Aceita tanto multipart (com arquivos) quanto JSON puro.
   var body = {}
@@ -246,6 +249,12 @@ routerAdd('POST', '/backend/v1/cadastro-publico', (e) => {
     }
     if (isNew) {
       record.set('origem', 'Formulário público')
+    }
+    if (isDuplicate) {
+      var prevTags = String(record.getString('tags') || '')
+      if (prevTags.indexOf('duplicata') === -1) {
+        record.set('tags', prevTags ? prevTags + ', duplicata' : 'duplicata')
+      }
     }
     $app.save(record)
   } catch (err) {
