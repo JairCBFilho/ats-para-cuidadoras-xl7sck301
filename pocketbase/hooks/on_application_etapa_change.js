@@ -34,10 +34,11 @@ onRecordAfterUpdateSuccess((e) => {
   try {
     var ents = $app.findRecordsByFilter(
       'entrevistas',
-      "candidata = '" + candidataId + "' && vaga = '" + vagaId + "' && status = 'agendada'",
+      "candidata = {:candidata} && vaga = {:vaga} && status = 'agendada'",
       'data_hora',
       1,
       0,
+      { candidata: candidataId, vaga: vagaId },
     )
     if (ents.length > 0) {
       var rawDate = ents[0].getString('data_hora')
@@ -56,10 +57,11 @@ onRecordAfterUpdateSuccess((e) => {
   try {
     var templates = $app.findRecordsByFilter(
       'email_templates',
-      "etapa = '" + newEtapa + "' && canal = 'email'",
+      "etapa = {:etapa} && canal = 'email'",
       'created',
       1,
       0,
+      { etapa: newEtapa },
     )
     if (templates.length > 0) template = templates[0]
   } catch (_) {}

@@ -91,10 +91,11 @@ routerAdd(
       var appRecord
       var existing = $app.findRecordsByFilter(
         'applications',
-        "vaga = '" + vagaId + "' && candidata = '" + candidata.id + "'",
+        'vaga = {:vaga} && candidata = {:candidata}',
         'created',
         1,
         0,
+        { vaga: vagaId, candidata: candidata.id },
       )
       if (existing.length > 0) {
         appRecord = existing[0]

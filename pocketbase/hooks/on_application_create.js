@@ -44,10 +44,11 @@ onRecordAfterCreateSuccess((e) => {
       if (cEmail) {
         var cuidadoresRel = $app.findRecordsByFilter(
           'cuidadores',
-          "email = '" + cEmail.replace(/'/g, "''") + "'",
+          'email = {:email}',
           'created',
           1,
           0,
+          { email: cEmail },
         )
         if (cuidadoresRel.length > 0) {
           cuidadorTags = cuidadoresRel[0].getString('tags')

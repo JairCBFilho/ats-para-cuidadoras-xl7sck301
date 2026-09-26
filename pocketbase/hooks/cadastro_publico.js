@@ -217,13 +217,9 @@ routerAdd('POST', '/backend/v1/cadastro-publico', (e) => {
   var col = $app.findCollectionByNameOrId('cuidadores')
   var record = null
   try {
-    var found = $app.findRecordsByFilter(
-      'cuidadores',
-      "cpf = '" + cpf.replace(/'/g, '') + "'",
-      'created',
-      1,
-      0,
-    )
+    var found = $app.findRecordsByFilter('cuidadores', 'cpf = {:cpf}', 'created', 1, 0, {
+      cpf: cpf,
+    })
     if (found.length > 0) record = found[0]
   } catch (_) {
     record = null

@@ -16,13 +16,9 @@ onRecordAfterUpdateSuccess((e) => {
   try {
     var candidata = null
     try {
-      var found = $app.findRecordsByFilter(
-        'candidatas',
-        "email = '" + email.replace(/'/g, "''") + "'",
-        'created',
-        1,
-        0,
-      )
+      var found = $app.findRecordsByFilter('candidatas', 'email = {:email}', 'created', 1, 0, {
+        email: email,
+      })
       if (found.length > 0) candidata = found[0]
     } catch (_) {}
 
@@ -71,13 +67,9 @@ onRecordAfterUpdateSuccess((e) => {
   try {
     var cuidador = null
     try {
-      var found = $app.findRecordsByFilter(
-        'cuidadores',
-        "email = '" + email.replace(/'/g, "''") + "'",
-        'created',
-        1,
-        0,
-      )
+      var found = $app.findRecordsByFilter('cuidadores', 'email = {:email}', 'created', 1, 0, {
+        email: email,
+      })
       if (found.length > 0) cuidador = found[0]
     } catch (_) {}
 

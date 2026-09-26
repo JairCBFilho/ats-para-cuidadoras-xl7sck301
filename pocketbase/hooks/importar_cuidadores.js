@@ -369,13 +369,9 @@ routerAdd(
       // Busca por CPF (se houver)
       try {
         if (cpf) {
-          var found = $app.findRecordsByFilter(
-            'cuidadores',
-            "cpf = '" + cpf.replace(/'/g, '') + "'",
-            'created',
-            1,
-            0,
-          )
+          var found = $app.findRecordsByFilter('cuidadores', 'cpf = {:cpf}', 'created', 1, 0, {
+            cpf: cpf,
+          })
           if (found.length > 0) {
             record = found[0]
             existed = true
@@ -388,10 +384,11 @@ routerAdd(
         try {
           var foundEmail = $app.findRecordsByFilter(
             'cuidadores',
-            "email = '" + email.replace(/'/g, '') + "'",
+            'email = {:email}',
             'created',
             1,
             0,
+            { email: email },
           )
           if (foundEmail.length > 0) {
             record = foundEmail[0]

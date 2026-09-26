@@ -22,10 +22,11 @@ cronAdd('entrevista_proxima_check', '0 * * * *', () => {
 
     var existing = $app.findRecordsByFilter(
       'notificacoes',
-      "entrevista = '" + entId + "' && tipo = 'entrevista_proxima'",
+      "entrevista = {:ent} && tipo = 'entrevista_proxima'",
       'created',
       1,
       0,
+      { ent: entId },
     )
     if (existing.length > 0) continue
 

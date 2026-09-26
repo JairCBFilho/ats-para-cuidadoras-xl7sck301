@@ -13,10 +13,11 @@ routerAdd(
 
     var templates = $app.findRecordsByFilter(
       'email_templates',
-      "etapa = '" + etapa + "' && canal = '" + canal + "'",
+      'etapa = {:etapa} && canal = {:canal}',
       'created',
       1,
       0,
+      { etapa: etapa, canal: canal },
     )
 
     var vaga = $app.findRecordById('vagas', vagaId)

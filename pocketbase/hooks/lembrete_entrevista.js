@@ -27,6 +27,7 @@ cronAdd('lembrete_entrevista_check', '0 * * * *', () => {
       1,
       0,
     )
+    // (mantido literal — sem input externo)
     if (tpls.length > 0) template = tpls[0]
   } catch (_) {}
 
@@ -40,10 +41,11 @@ cronAdd('lembrete_entrevista_check', '0 * * * *', () => {
     try {
       ents = $app.findRecordsByFilter(
         'entrevistas',
-        "candidata = '" + candidataId + "' && vaga = '" + vagaId + "' && status = 'agendada'",
+        "candidata = {:candidata} && vaga = {:vaga} && status = 'agendada'",
         'data_hora',
         5,
         0,
+        { candidata: candidataId, vaga: vagaId },
       )
     } catch (_) {}
 
