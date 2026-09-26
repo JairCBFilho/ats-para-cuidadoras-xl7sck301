@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-24T22:06:42.284Z",
+  "generatedAt": "2026-09-26T22:05:33.689Z",
   "collections": [
     {
       "name": "users",
@@ -7,9 +7,9 @@
       "apiRules": {
         "list": "id = @request.auth.id",
         "view": "id = @request.auth.id",
-        "create": "",
-        "update": "id = @request.auth.id",
-        "delete": "id = @request.auth.id"
+        "create": null,
+        "update": "@request.auth.id = id",
+        "delete": null
       },
       "fields": [
         {
@@ -29,14 +29,29 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
+        },
+        {
+          "name": "role",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": [
+            "admin",
+            "recrutador"
+          ]
         }
       ],
       "indexes": [
@@ -72,7 +87,10 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["12h", "24h"]
+          "selectValues": [
+            "12h",
+            "24h"
+          ]
         },
         {
           "name": "requisitos",
@@ -85,24 +103,34 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["aberta", "fechada"]
+          "selectValues": [
+            "aberta",
+            "fechada"
+          ]
         },
         {
           "name": "created",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
-      "indexes": ["CREATE INDEX idx_vagas_status ON vagas (status)"]
+      "indexes": [
+        "CREATE INDEX idx_vagas_status ON vagas (status)"
+      ]
     },
     {
       "name": "candidatas",
@@ -144,14 +172,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         },
         {
           "name": "email",
@@ -211,7 +244,9 @@
           "system": false
         }
       ],
-      "indexes": ["CREATE INDEX `idx_candidatas_origem` ON `candidatas` (origem)"]
+      "indexes": [
+        "CREATE INDEX `idx_candidatas_origem` ON `candidatas` (origem)"
+      ]
     },
     {
       "name": "applications",
@@ -243,21 +278,31 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["Triagem", "Entrevista", "Aprovada", "Rejeitada"]
+          "selectValues": [
+            "Triagem",
+            "Entrevista",
+            "Aprovada",
+            "Rejeitada"
+          ]
         },
         {
           "name": "created",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         },
         {
           "name": "compatibilidade",
@@ -338,7 +383,11 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["pendente", "confirmada", "rejeitada"]
+          "selectValues": [
+            "pendente",
+            "confirmada",
+            "rejeitada"
+          ]
         },
         {
           "name": "observacoes",
@@ -351,14 +400,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
       "indexes": [
@@ -395,28 +449,41 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["Documentação", "Treinamento", "Contrato", "Outro"]
+          "selectValues": [
+            "Documentação",
+            "Treinamento",
+            "Contrato",
+            "Outro"
+          ]
         },
         {
           "name": "status",
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["pendente", "concluida"]
+          "selectValues": [
+            "pendente",
+            "concluida"
+          ]
         },
         {
           "name": "created",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
       "indexes": [
@@ -467,21 +534,29 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         },
         {
           "name": "canal",
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["email", "whatsapp"]
+          "selectValues": [
+            "email",
+            "whatsapp"
+          ]
         },
         {
           "name": "anexo",
@@ -530,7 +605,11 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["agendada", "realizada", "cancelada"]
+          "selectValues": [
+            "agendada",
+            "realizada",
+            "cancelada"
+          ]
         },
         {
           "name": "observacoes",
@@ -543,14 +622,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
       "indexes": [
@@ -575,21 +659,29 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["email", "whatsapp"]
+          "selectValues": [
+            "email",
+            "whatsapp"
+          ]
         },
         {
           "name": "created",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         },
         {
           "name": "token_cadastro",
@@ -622,7 +714,10 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["nova_candidatura", "entrevista_proxima"]
+          "selectValues": [
+            "nova_candidatura",
+            "entrevista_proxima"
+          ]
         },
         {
           "name": "lida",
@@ -656,14 +751,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
       "indexes": [
@@ -763,7 +863,10 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["disponível", "indisponível"]
+          "selectValues": [
+            "disponível",
+            "indisponível"
+          ]
         },
         {
           "name": "especialidades",
@@ -776,21 +879,29 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["12h", "24h"]
+          "selectValues": [
+            "12h",
+            "24h"
+          ]
         },
         {
           "name": "created",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         },
         {
           "name": "codigo",
@@ -952,6 +1063,75 @@
       "indexes": [
         "CREATE INDEX idx_cuidadores_disponibilidade ON cuidadores (disponibilidade)",
         "CREATE UNIQUE INDEX `idx_cuidadores_cpf` ON `cuidadores` (cpf) WHERE cpf != ''"
+      ]
+    },
+    {
+      "name": "convites",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": null,
+        "update": null,
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "email",
+          "type": "email",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "token",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "role",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": [
+            "admin",
+            "recrutador"
+          ]
+        },
+        {
+          "name": "usado",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "expires_at",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": [
+            "onCreate"
+          ]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_convites_token ON convites (token)"
       ]
     }
   ]
