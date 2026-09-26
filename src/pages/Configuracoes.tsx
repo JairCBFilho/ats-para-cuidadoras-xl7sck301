@@ -23,9 +23,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Settings, Link2, RefreshCw, Copy, Eye, EyeOff } from 'lucide-react'
+import { Settings, Link2, RefreshCw, Copy, Eye, EyeOff, UserPlus } from 'lucide-react'
 import { toast } from 'sonner'
 import { regenerarTokenCadastro } from '@/services/cadastro-publico'
+import pb from '@/lib/pocketbase/client'
 
 const STAGES: EtapaEmail[] = [
   'Triagem',
@@ -44,6 +45,10 @@ export default function Configuracoes() {
   const [showToken, setShowToken] = useState(false)
   const [regenerating, setRegenerating] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [inviteEmail, setInviteEmail] = useState('')
+  const [inviteRole, setInviteRole] = useState<'admin' | 'recrutador'>('recrutador')
+  const [sendingInvite, setSendingInvite] = useState(false)
+  const [inviteLink, setInviteLink] = useState('')
 
   const load = async () => {
     try {
@@ -118,6 +123,30 @@ export default function Configuracoes() {
     }
   }
 
+  const handleSendInvite = async () => {
+    if (!inviteEmail.trim()) {
+      toast.error('Informe o e-mail do convidado')
+      return
+    }
+    setSendingInvite(true)
+    try {
+      const res = await fetch(`${import.meta.env.VITE_POCKETBASE_URL}/backend/v1/convites/criar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: pb.authStore.token },
+        body: JSON.stringify({ email: inviteEmail.trim(), role: inviteRole }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data?.error || 'Erro ao enviar convite')
+      setInviteLink(data.link || '')
+      toast.success('Convite enviado por e-mail!')
+      setInviteEmail('')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao enviar convite')
+    } finally {
+      setSendingInvite(false)
+    }
+  }
+
   if (loading) return <div className="p-6 text-muted-foreground">Carregando...</div>
 
   return (
@@ -145,6 +174,80 @@ export default function Configuracoes() {
               <SelectItem value="whatsapp">WhatsApp</SelectItem>
             </SelectContent>
           </Select>
+        </CardContent>
+      </Card>
+
+      {/* Convites de acesso */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <UserPlus className="h-4 w-4" /> Convites de acesso
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            O cadastro é fechado: novas contas só nascem por convite. Envie um convite por e-mail —
+            o link vale 7 dias e permite criar uma única conta.
+          </p>
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="space-y-1.5">
+              <Label>E-mail do convidado</Label>
+              <Input
+                type="email"
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                placeholder="pessoa@email.com"
+                className="w-64"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Papel</Label>
+              <Select
+                value={inviteRole}
+                onValueChange={(v) => setInviteRole(v as 'admin' | 'recrutador')}
+              >
+                <SelectTrigger className="w-40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="recrutador">Recrutador</SelectItem>
+                  <SelectItem value="admin">Administrador</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <button
+              type="button"
+              onClick={handleSendInvite}
+              disabled={sendingInvite}
+              className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+            >
+              <UserPlus className={`h-4 w-4 ${sendingInvite ? 'animate-pulse' : ''}`} />
+              {sendingInvite ? 'Enviando...' : 'Enviar convite'}
+            </button>
+          </div>
+          {inviteLink && (
+            <div className="space-y-2">
+              <span className="text-sm font-medium">Link do último convite</span>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 truncate rounded-md border bg-muted px-3 py-2 text-xs font-mono">
+                  {inviteLink}
+                </code>
+                <button
+                  type="button"
+                  onClick={() =>
+                    navigator.clipboard
+                      .writeText(inviteLink)
+                      .then(() => toast.success('Link copiado!'))
+                      .catch(() => toast.error('Não foi possível copiar'))
+                  }
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-md border bg-background hover:bg-muted"
+                  title="Copiar link do convite"
+                >
+                  <Copy className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

@@ -1,5 +1,4 @@
-import { useState } from 'react'
-import { Link, Navigate, useNavigate } from 'react-router-dom'
+import { useState, Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -120,10 +119,7 @@ export default function Login() {
                 {submitting ? 'Entrando...' : 'Entrar'}
               </Button>
               <p className="text-sm text-center text-muted-foreground">
-                Não tem conta?{' '}
-                <Link to="/signup" className="text-primary font-medium underline">
-                  Cadastre-se
-                </Link>
+                O acesso ao sistema é por convite. Precisa de acesso? Fale com o administrador.
               </p>
             </form>
           ) : (
