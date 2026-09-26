@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { getVagas, type Vaga } from '@/services/vagas'
 import { getCandidatas, type Candidata } from '@/services/candidatas'
-import { createApplication } from '@/services/applications'
+import { createApplication, getApplicationsByVaga } from '@/services/applications'
 import { extractFieldErrors, type FieldErrors } from '@/lib/pocketbase/errors'
 import {
   Dialog,
@@ -58,8 +58,16 @@ export function ApplicationFormDialog({ open, onOpenChange, onSaved }: Props) {
 
     setSaving(true)
     try {
+      // Bloqueia duplicata: mesma candidata ja tem candidatura nesta vaga?
+      const existing = await getApplicationsByVaga(vagaId)
+      if (existing.some((a) => a.candidata === candidataId)) {
+        setErrors({ candidata: 'Esta candidata já tem candidatura nesta vaga' })
+        toast.error('Candidatura duplicada — escolha outra candidata ou vaga')
+        setSaving(false)
+        return
+      }
       await createApplication({ vaga: vagaId, candidata: candidataId, etapa: 'Triagem' })
-      toast.success('Candidatura criada com sucesso!')
+      toast.success('Candidatura criada! O score de IA será calculado em instantes.')
       onOpenChange(false)
       onSaved()
     } catch (err) {

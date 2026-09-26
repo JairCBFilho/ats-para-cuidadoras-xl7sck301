@@ -40,12 +40,17 @@ export function CompatibilidadeSection({ candidataId }: Props) {
       const apps = await getApplicationsByCandidata(candidataId)
       const app = apps.find((a) => a.vaga === vagaId)
       if (app && app.compatibilidade !== undefined && app.compatibilidade !== null) {
-        setResult({
-          score: app.compatibilidade,
-          justificativa: app.justificativa || 'Compatibilidade calculada anteriormente.',
-          pontos_fortes: app.pontos_fortes || '',
-          pontos_atencao: app.pontos_atencao || '',
-        })
+        // score_avaliado false = IA ainda na fila — mostra "Avaliando..."
+        if ((app as unknown as { score_avaliado?: boolean }).score_avaliado === false) {
+          setResult({ score: -1, justificativa: '', pontos_fortes: '', pontos_atencao: '' })
+        } else {
+          setResult({
+            score: app.compatibilidade,
+            justificativa: app.justificativa || 'Compatibilidade calculada anteriormente.',
+            pontos_fortes: app.pontos_fortes || '',
+            pontos_atencao: app.pontos_atencao || '',
+          })
+        }
       } else {
         setResult(null)
       }
@@ -138,7 +143,13 @@ export function CompatibilidadeSection({ candidataId }: Props) {
               <div className="space-y-3 rounded-lg bg-muted/50 p-4">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium">Compatibilidade:</span>
-                  <span className="text-2xl font-bold text-primary">{result.score}%</span>
+                  {result.score === -1 ? (
+                    <span className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" /> Avaliando com IA...
+                    </span>
+                  ) : (
+                    <span className="text-2xl font-bold text-primary">{result.score}%</span>
+                  )}
                 </div>
                 {result.pontos_fortes && (
                   <div className="flex items-start gap-2">
