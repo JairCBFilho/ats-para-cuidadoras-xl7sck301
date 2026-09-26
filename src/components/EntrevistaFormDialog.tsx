@@ -27,6 +27,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { toast } from 'sonner'
+import { localInputToUTC, utcToLocalInput } from '@/lib/datetime'
 
 interface Props {
   open: boolean
@@ -68,7 +69,7 @@ export function EntrevistaFormDialog({
           ? {
               candidata: entrevista.candidata,
               vaga: entrevista.vaga,
-              data_hora: entrevista.data_hora ? entrevista.data_hora.slice(0, 16) : '',
+              data_hora: utcToLocalInput(entrevista.data_hora),
               status: entrevista.status,
               observacoes: entrevista.observacoes || '',
             }
@@ -93,11 +94,12 @@ export function EntrevistaFormDialog({
     if (Object.keys(errs).length > 0) return
     setSaving(true)
     try {
+      const payload = { ...form, data_hora: localInputToUTC(form.data_hora) }
       if (entrevista) {
-        await updateEntrevista(entrevista.id, form)
+        await updateEntrevista(entrevista.id, payload)
         toast.success('Entrevista atualizada!')
       } else {
-        await createEntrevista(form)
+        await createEntrevista(payload)
         toast.success('Entrevista criada!')
       }
       onOpenChange(false)

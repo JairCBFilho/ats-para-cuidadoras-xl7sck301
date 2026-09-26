@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Plus, Pencil, Trash2, CalendarDays } from 'lucide-react'
 import { toast } from 'sonner'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
-import { formatDateTime } from '@/lib/template-utils'
+import { formatDateTimeBRT } from '@/lib/datetime'
 import { GoogleCalendarLink } from '@/components/GoogleCalendarLink'
 
 const statusLabel: Record<string, string> = {
@@ -94,7 +94,7 @@ export default function Entrevistas() {
                     </Badge>
                   </div>
                   <p className="text-sm text-muted-foreground">{ent.expand?.vaga?.cargo || '—'}</p>
-                  <p className="text-sm font-medium">{formatDateTime(ent.data_hora)}</p>
+                  <p className="text-sm font-medium">{formatDateTimeBRT(ent.data_hora)}</p>
                   {ent.observacoes && (
                     <p className="text-sm text-muted-foreground">{ent.observacoes}</p>
                   )}

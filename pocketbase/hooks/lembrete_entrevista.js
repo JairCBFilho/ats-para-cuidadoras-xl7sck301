@@ -82,15 +82,17 @@ cronAdd('lembrete_entrevista_check', '0 * * * *', () => {
       cargo = vaga.getString('cargo')
     } catch (_) {}
 
-    // Formata data/hora (dd/mm/aaaa HH:MM).
-    var pDay = dataHora.getDate() < 10 ? '0' + dataHora.getDate() : '' + dataHora.getDate()
-    var pMonth =
-      dataHora.getMonth() + 1 < 10
-        ? '0' + (dataHora.getMonth() + 1)
-        : '' + (dataHora.getMonth() + 1)
-    var pHour = dataHora.getHours() < 10 ? '0' + dataHora.getHours() : '' + dataHora.getHours()
-    var pMin = dataHora.getMinutes() < 10 ? '0' + dataHora.getMinutes() : '' + dataHora.getMinutes()
-    var dataStr = pDay + '/' + pMonth + '/' + dataHora.getFullYear() + ' ' + pHour + ':' + pMin
+    // Formata data/hora no fuso de Brasília (dd/mm/aaaa HH:MM).
+    var dataStr = String(
+      new Intl.DateTimeFormat('pt-BR', {
+        timeZone: 'America/Sao_Paulo',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      }).format(dataHora),
+    )
 
     var assunto = 'Lembrete: sua entrevista sera amanha'
     var corpo =

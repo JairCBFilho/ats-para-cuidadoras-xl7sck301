@@ -43,11 +43,16 @@ onRecordAfterUpdateSuccess((e) => {
     if (ents.length > 0) {
       var rawDate = ents[0].getString('data_hora')
       var d = new Date(rawDate)
-      var pDay = d.getDate() < 10 ? '0' + d.getDate() : '' + d.getDate()
-      var pMonth = d.getMonth() + 1 < 10 ? '0' + (d.getMonth() + 1) : '' + (d.getMonth() + 1)
-      var pHour = d.getHours() < 10 ? '0' + d.getHours() : '' + d.getHours()
-      var pMin = d.getMinutes() < 10 ? '0' + d.getMinutes() : '' + d.getMinutes()
-      dataEntrevista = pDay + '/' + pMonth + '/' + d.getFullYear() + ' ' + pHour + ':' + pMin
+      if (isNaN(d.getTime())) throw new Error('data invalida')
+      var p = new Intl.DateTimeFormat('pt-BR', {
+        timeZone: 'America/Sao_Paulo',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      }).format(d)
+      dataEntrevista = String(p)
     }
   } catch (_) {}
 

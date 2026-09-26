@@ -36,15 +36,16 @@ cronAdd('entrevista_proxima_check', '0 * * * *', () => {
       var nome = candidata.getString('nome')
       var cargo = vaga.getString('cargo')
 
-      var pDay = dataHora.getDate() < 10 ? '0' + dataHora.getDate() : '' + dataHora.getDate()
-      var pMonth =
-        dataHora.getMonth() + 1 < 10
-          ? '0' + (dataHora.getMonth() + 1)
-          : '' + (dataHora.getMonth() + 1)
-      var pHour = dataHora.getHours() < 10 ? '0' + dataHora.getHours() : '' + dataHora.getHours()
-      var pMin =
-        dataHora.getMinutes() < 10 ? '0' + dataHora.getMinutes() : '' + dataHora.getMinutes()
-      var dataStr = pDay + '/' + pMonth + '/' + dataHora.getFullYear() + ' ' + pHour + ':' + pMin
+      var dataStr = String(
+        new Intl.DateTimeFormat('pt-BR', {
+          timeZone: 'America/Sao_Paulo',
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        }).format(dataHora),
+      )
 
       var notifCol = $app.findCollectionByNameOrId('notificacoes')
       var notif = new Record(notifCol)
