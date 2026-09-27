@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-26T23:27:32.731Z",
+  "generatedAt": "2026-09-27T00:02:56.111Z",
   "collections": [
     {
       "name": "users",
@@ -337,6 +337,18 @@
         {
           "name": "score_avaliado",
           "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_aprovada",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_rejeitada",
+          "type": "date",
           "required": false,
           "system": false
         }
@@ -1065,6 +1077,18 @@
           "type": "text",
           "required": false,
           "system": false
+        },
+        {
+          "name": "consentimento_lgpd",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "consentimento_data",
+          "type": "date",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
@@ -1139,6 +1163,86 @@
       ],
       "indexes": [
         "CREATE UNIQUE INDEX idx_convites_token ON convites (token)"
+      ]
+    },
+    {
+      "name": "comunicacoes_log",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": null,
+        "update": null,
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "nome",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "email",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "canal",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": [
+            "email",
+            "whatsapp"
+          ]
+        },
+        {
+          "name": "etapa",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": [
+            "enviado",
+            "erro"
+          ]
+        },
+        {
+          "name": "detalhe",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": [
+            "onCreate"
+          ]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_comunicacoes_email ON comunicacoes_log (email)",
+        "CREATE INDEX idx_comunicacoes_created ON comunicacoes_log (created)"
       ]
     }
   ]

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { getApplications, type Application } from '@/services/applications'
 import { getVagas, type Vaga } from '@/services/vagas'
 import { getCandidatas, type Candidata } from '@/services/candidatas'
@@ -35,16 +35,32 @@ export default function Relatorios() {
   useEffect(() => {
     load()
   }, [load])
-  useRealtime('applications', () => load())
-  useRealtime('vagas', () => load())
-  useRealtime('candidatas', () => load())
+
+  // Debounce: um lote de N eventos (ex.: importacao/batch) dispara 1 reload, nao N
+  const reloadTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const debouncedLoad = useCallback(() => {
+    if (reloadTimer.current) clearTimeout(reloadTimer.current)
+    reloadTimer.current = setTimeout(() => load(), 500)
+  }, [load])
+  useEffect(() => {
+    return () => {
+      if (reloadTimer.current) clearTimeout(reloadTimer.current)
+    }
+  }, [])
+
+  useRealtime('applications', debouncedLoad)
+  useRealtime('vagas', debouncedLoad)
+  useRealtime('candidatas', debouncedLoad)
 
   const approvedApps = applications.filter((a) => a.etapa === 'Aprovada')
+  // Tempo de contratação usa data_aprovada (gravada na mudança de etapa),
+  // com fallback para 'updated' nos registros antigos (backfill da migration).
   const timeToHire =
     approvedApps.length > 0
       ? approvedApps.reduce((sum, a) => {
-          const diff = new Date(a.updated).getTime() - new Date(a.created).getTime()
-          return sum + diff / (1000 * 60 * 60 * 24)
+          const end = (a as unknown as { data_aprovada?: string }).data_aprovada || a.updated
+          const diff = new Date(end).getTime() - new Date(a.created).getTime()
+          return sum + Math.max(0, diff / (1000 * 60 * 60 * 24))
         }, 0) / approvedApps.length
       : null
 

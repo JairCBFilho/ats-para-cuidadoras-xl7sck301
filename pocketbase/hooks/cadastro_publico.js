@@ -271,6 +271,8 @@ routerAdd('POST', '/backend/v1/cadastro-publico', (e) => {
     }
     if (isNew) {
       record.set('origem', 'Formulário público')
+      record.set('consentimento_lgpd', true)
+      record.set('consentimento_data', new Date().toISOString().replace('T', ' '))
     }
     if (isDuplicate) {
       var prevTags = String(record.getString('tags') || '')
@@ -280,7 +282,15 @@ routerAdd('POST', '/backend/v1/cadastro-publico', (e) => {
     }
     $app.save(record)
   } catch (err) {
-    $app.logger().error('cadastro-publico erro ao salvar', 'cpf', cpf, 'error', String(err))
+    $app
+      .logger()
+      .error(
+        'cadastro-publico erro ao salvar',
+        'cpf',
+        cpf.substring(0, 3) + '***' + cpf.substring(9),
+        'error',
+        String(err),
+      )
     return e.json(400, { error: 'Não foi possível processar o cadastro. Verifique os dados.' })
   }
 

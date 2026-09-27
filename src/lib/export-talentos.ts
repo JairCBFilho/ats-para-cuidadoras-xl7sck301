@@ -43,8 +43,9 @@ const EXCEL_COLUMNS: { header: string; key: keyof Cuidador | 'tags_arr' }[] = [
   { header: 'Referências', key: 'referencias' },
   { header: 'LinkedIn', key: 'linkedin' },
   { header: 'Portfolio', key: 'portfolio' },
-  { header: 'CPF', key: 'cpf' },
-  { header: 'Identidade', key: 'identidade' },
+  { header: 'CPF (mascarado)', key: 'cpf_mask' },
+  { header: 'Consentimento LGPD', key: 'consentimento_lgpd' },
+  { header: 'Consentimento em', key: 'consentimento_data' },
   { header: 'Sexo', key: 'sexo' },
   { header: 'Nascimento', key: 'nascimento' },
   { header: 'Código', key: 'codigo' },
@@ -53,6 +54,13 @@ const EXCEL_COLUMNS: { header: string; key: keyof Cuidador | 'tags_arr' }[] = [
   { header: 'Tags', key: 'tags_arr' },
 ]
 
+/** Mascara CPF: 123.***.***-09 */
+function maskCPF(cpf?: string): string {
+  const d = (cpf || '').replace(/\D/g, '')
+  if (d.length !== 11) return ''
+  return `${d.slice(0, 3)}.***.***-${d.slice(9)}`
+}
+
 /** Gera e baixa um arquivo .xlsx com todos os campos das cuidadoras informadas. */
 export function exportCuidadoresExcel(cuidadores: Cuidador[]): void {
   const rows = cuidadores.map((c) => {
@@ -60,6 +68,10 @@ export function exportCuidadoresExcel(cuidadores: Cuidador[]): void {
     for (const col of EXCEL_COLUMNS) {
       if (col.key === 'tags_arr') {
         row[col.header] = parseTags(c.tags).join(', ')
+      } else if (col.key === 'cpf_mask') {
+        row[col.header] = maskCPF(c.cpf)
+      } else if (col.key === 'consentimento_lgpd') {
+        row[col.header] = c.consentimento_lgpd ? 'Sim' : 'Não'
       } else {
         const v = c[col.key]
         row[col.header] = v === undefined || v === null ? '' : String(v)

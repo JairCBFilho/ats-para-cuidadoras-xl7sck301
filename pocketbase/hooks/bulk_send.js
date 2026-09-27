@@ -20,10 +20,31 @@ routerAdd(
       { etapa: etapa, canal: canal },
     )
 
+    if (templates.length === 0)
+      return e.badRequestError(
+        'Template nao configurado para ' + etapa + '/' + canal + '. Cadastre em Configuracoes.',
+      )
+
     var vaga = $app.findRecordById('vagas', vagaId)
     var cargo = vaga.getString('cargo')
 
     var results = []
+
+    var logComunicacao = function (nome, email, canal, etapa, status, detalhe) {
+      try {
+        var logCol = $app.findCollectionByNameOrId('comunicacoes_log')
+        var logRec = new Record(logCol)
+        logRec.set('nome', nome)
+        logRec.set('email', email)
+        logRec.set('canal', canal)
+        logRec.set('etapa', etapa)
+        logRec.set('status', status)
+        logRec.set('detalhe', detalhe || '')
+        $app.save(logRec)
+      } catch (_) {
+        /* log nunca quebra o fluxo */
+      }
+    }
 
     for (var i = 0; i < candidataIds.length; i++) {
       var candidataId = candidataIds[i]
@@ -65,6 +86,7 @@ routerAdd(
             subject: assunto,
             html: corpo,
           })
+          logComunicacao(nome, email, 'email', etapa, 'enviado', '')
           results.push({ candidataId: candidataId, success: true })
         } else {
           var phone = telefone.replace(/[^\d]/g, '')
@@ -72,6 +94,7 @@ routerAdd(
           results.push({ candidataId: candidataId, success: true, link: link })
         }
       } catch (err) {
+        logComunicacao(nome || '', email || '', 'email', etapa, 'erro', String(err))
         results.push({ candidataId: candidataId, success: false, error: String(err) })
       }
     }

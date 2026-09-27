@@ -3,6 +3,18 @@ onRecordAfterUpdateSuccess((e) => {
   var newEtapa = e.record.getString('etapa')
   if (oldEtapa === newEtapa) return e.next()
 
+  // Data da mudanca de etapa — base do relatorio "tempo de contratacao"
+  if (newEtapa === 'Aprovada') {
+    e.record.set('data_aprovada', new Date().toISOString().replace('T', ' '))
+  } else if (newEtapa === 'Rejeitada') {
+    e.record.set('data_rejeitada', new Date().toISOString().replace('T', ' '))
+  }
+  try {
+    $app.saveNoValidate(e.record)
+  } catch (_) {
+    /* datas sao complementares — segue */
+  }
+
   var candidataId = e.record.getString('candidata')
   if (!candidataId) return e.next()
 
