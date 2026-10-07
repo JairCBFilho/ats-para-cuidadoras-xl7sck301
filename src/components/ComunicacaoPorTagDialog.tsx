@@ -51,6 +51,7 @@ export function ComunicacaoPorTagDialog({ open, onOpenChange }: Props) {
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [canal, setCanal] = useState<'email' | 'whatsapp'>('email')
   const [templateId, setTemplateId] = useState<string>('')
+  const [modo, setModo] = useState<'incluir' | 'excluir'>('incluir')
   const [sending, setSending] = useState(false)
   const [emailResult, setEmailResult] = useState<DisparoPorTagEmailResult | null>(null)
   const queue = useWhatsappQueue()
@@ -67,6 +68,7 @@ export function ComunicacaoPorTagDialog({ open, onOpenChange }: Props) {
     } else {
       setSelectedTags([])
       setTemplateId('')
+      setModo('incluir')
       setEmailResult(null)
       resetQueue()
     }
@@ -80,13 +82,26 @@ export function ComunicacaoPorTagDialog({ open, onOpenChange }: Props) {
     return Array.from(set).sort((a, b) => a.localeCompare(b))
   }, [cuidadores])
 
-  // Pré-contagem de cuidadores alcançados pelas tags selecionadas
+  // Pré-contagem de cuidadores alcançados de acordo com o modo
   const alvoCount = useMemo(() => {
-    if (selectedTags.length === 0) return 0
+    if (selectedTags.length === 0) {
+      // Se não selecionou tag:
+      // modo incluir => 0
+      // modo excluir => 0 (precisa selecionar quais excluir)
+      return 0
+    }
     const lower = new Set(selectedTags.map((t) => t.toLowerCase()))
+
+    if (modo === 'excluir') {
+      // Todas menos quem tem as tags selecionadas
+      return cuidadores.filter((c) => !parseTags(c.tags).some((t) => lower.has(t.toLowerCase())))
+        .length
+    }
+
+    // Modo incluir: apenas quem tem pelo menos uma das tags
     return cuidadores.filter((c) => parseTags(c.tags).some((t) => lower.has(t.toLowerCase())))
       .length
-  }, [cuidadores, selectedTags])
+  }, [cuidadores, selectedTags, modo])
 
   const toggleTag = (tag: string) => {
     setSelectedTags((prev) =>
@@ -108,9 +123,10 @@ export function ComunicacaoPorTagDialog({ open, onOpenChange }: Props) {
     const tpl = templates.find((t) => t.id === templateId)
     if (!tpl) return null
     const lower = new Set(selectedTags.map((t) => t.toLowerCase()))
-    const primeiro = cuidadores.find((c) =>
-      parseTags(c.tags).some((t) => lower.has(t.toLowerCase())),
-    )
+    const primeiro =
+      modo === 'excluir'
+        ? cuidadores.find((c) => !parseTags(c.tags).some((t) => lower.has(t.toLowerCase())))
+        : cuidadores.find((c) => parseTags(c.tags).some((t) => lower.has(t.toLowerCase())))
     const nome = primeiro?.nome || '{nome_candidata}'
     const assunto = tpl.assunto
       .replace(/{nome_candidata}/g, nome)
@@ -130,7 +146,7 @@ export function ComunicacaoPorTagDialog({ open, onOpenChange }: Props) {
   const handleSend = async () => {
     setSending(true)
     try {
-      const res = await dispararPorTag({ tags: selectedTags, canal, templateId })
+      const res = await dispararPorTag({ tags: selectedTags, canal, templateId, modo })
       if (canal === 'whatsapp') {
         const links = (res as { results: BulkSendResult[]; total: number }).results.filter(
           (r) => r.success && r.link,
@@ -193,7 +209,10 @@ export function ComunicacaoPorTagDialog({ open, onOpenChange }: Props) {
                 {emailResult.enviados === 1 ? 'e-mail enviado' : 'e-mails enviados'}
               </p>
               <p className="text-sm text-muted-foreground">
-                de {emailResult.total} cuidadora(s) com as tags selecionadas
+                de {emailResult.total} cuidadora(s){' '}
+                {modo === 'excluir'
+                  ? 'alcançadas (todas exceto as tags selecionadas)'
+                  : 'com as tags selecionadas'}
               </p>
               {emailResult.erros.length > 0 && (
                 <div className="w-full rounded-lg border border-amber-300 bg-amber-50 p-3 dark:border-amber-700 dark:bg-amber-950/40">
@@ -219,18 +238,74 @@ export function ComunicacaoPorTagDialog({ open, onOpenChange }: Props) {
         ) : !isActive ? (
           <>
             <div className="space-y-4">
+              {/* Modo de filtro: Incluir vs Excluir */}
+              <div className="space-y-2">
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Modo de disparo
+                </Label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setModo('incluir')}
+                    className={cn(
+                      'flex flex-col items-start p-3 rounded-xl border text-left transition-all',
+                      modo === 'incluir'
+                        ? 'border-neutral-900 bg-neutral-900 text-white shadow-sm dark:border-white dark:bg-white dark:text-neutral-900'
+                        : 'border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-800 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-200',
+                    )}
+                  >
+                    <span className="text-sm font-semibold flex items-center gap-1.5">
+                      <Tag className="h-3.5 w-3.5" />
+                      Incluir apenas quem tem
+                    </span>
+                    <span
+                      className={cn(
+                        'text-xs mt-1',
+                        modo === 'incluir'
+                          ? 'text-neutral-300 dark:text-neutral-600'
+                          : 'text-muted-foreground',
+                      )}
+                    >
+                      Dispara para as cuidadoras com as tags selecionadas.
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setModo('excluir')}
+                    className={cn(
+                      'flex flex-col items-start p-3 rounded-xl border text-left transition-all',
+                      modo === 'excluir'
+                        ? 'border-[#F5C518] bg-[#F5C518]/15 border-2 text-neutral-900 dark:text-neutral-100 shadow-sm'
+                        : 'border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-800 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-200',
+                    )}
+                  >
+                    <span className="text-sm font-semibold flex items-center gap-1.5">
+                      <span className="text-base leading-none">➖</span>
+                      Todas menos a selecionada
+                    </span>
+                    <span className="text-xs text-muted-foreground mt-1">
+                      Dispara para TODAS, EXCETO quem tem as tags marcadas.
+                    </span>
+                  </button>
+                </div>
+              </div>
+
               {/* Seleção de tags */}
               <div>
                 <Label className="flex items-center gap-1.5">
-                  <Tag className="h-3.5 w-3.5" /> Tags
+                  <Tag className="h-3.5 w-3.5" />
+                  {modo === 'excluir' ? 'Tags a EXCLUIR do envio' : 'Tags a INCLUIR no envio'}
                 </Label>
                 <p className="text-xs text-muted-foreground mb-2">
-                  Selecione uma ou mais tags para alcançar todas as cuidadoras que as possuam.
+                  {modo === 'excluir'
+                    ? 'Selecione as tags que NÃO devem receber a mensagem (ex: "Atualizado", "Reprovado").'
+                    : 'Selecione uma ou mais tags para alcançar todas as cuidadoras que as possuam.'}
                 </p>
                 {availableTags.length === 0 ? (
                   <p className="text-sm text-muted-foreground">Nenhuma tag disponível.</p>
                 ) : (
-                  <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto">
+                  <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto p-1 border rounded-xl bg-neutral-50/50 dark:bg-neutral-900/30">
                     {availableTags.map((t) => {
                       const active = selectedTags.some((s) => s.toLowerCase() === t.toLowerCase())
                       return (
@@ -241,10 +316,13 @@ export function ComunicacaoPorTagDialog({ open, onOpenChange }: Props) {
                           className={cn(
                             'inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium transition-colors',
                             active
-                              ? cn(tagColor(t), 'ring-2 ring-primary/40')
+                              ? modo === 'excluir'
+                                ? 'bg-red-100 text-red-900 border-red-300 ring-2 ring-red-400 dark:bg-red-950/60 dark:text-red-200'
+                                : cn(tagColor(t), 'ring-2 ring-primary/40')
                               : 'border-input bg-background hover:bg-accent',
                           )}
                         >
+                          {modo === 'excluir' && active && '✕ '}
                           {t}
                         </button>
                       )
@@ -254,10 +332,34 @@ export function ComunicacaoPorTagDialog({ open, onOpenChange }: Props) {
               </div>
 
               {/* Contagem de alcançados */}
-              <div className="rounded-lg bg-muted/50 p-3">
+              <div
+                className={cn(
+                  'rounded-xl p-3 border transition-colors',
+                  modo === 'excluir'
+                    ? 'bg-amber-50/70 border-amber-200 text-amber-950 dark:bg-amber-950/30 dark:border-amber-900 dark:text-amber-200'
+                    : 'bg-muted/50 border-transparent',
+                )}
+              >
                 <p className="text-sm">
-                  <span className="font-bold">{alvoCount}</span>{' '}
-                  {alvoCount === 1 ? 'cuidadora' : 'cuidadoras'} com as tags selecionadas
+                  {selectedTags.length === 0 ? (
+                    <span className="text-muted-foreground text-xs">
+                      Selecione ao menos uma tag acima para calcular os destinatários.
+                    </span>
+                  ) : modo === 'excluir' ? (
+                    <>
+                      <span className="font-bold text-base">{alvoCount}</span> cuidadora(s) serão
+                      atingidas{' '}
+                      <span className="font-medium text-xs block text-muted-foreground mt-0.5">
+                        (de um total de {cuidadores.length}, excluindo quem possui as{' '}
+                        {selectedTags.length} tag(s) selecionada(s))
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="font-bold text-base">{alvoCount}</span>{' '}
+                      {alvoCount === 1 ? 'cuidadora' : 'cuidadoras'} com as tags selecionadas
+                    </>
+                  )}
                 </p>
               </div>
 

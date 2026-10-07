@@ -450,6 +450,19 @@ export default function BancoTalentos() {
                       {c.especialidades}
                     </Badge>
                   )}
+                  {c.documentos_pdf &&
+                    (Array.isArray(c.documentos_pdf)
+                      ? c.documentos_pdf.length > 0
+                      : Boolean(c.documentos_pdf)) && (
+                      <Badge
+                        variant="secondary"
+                        className="bg-amber-100 text-amber-900 border-amber-200 dark:bg-amber-950/40 dark:text-amber-200"
+                        title={`${Array.isArray(c.documentos_pdf) ? c.documentos_pdf.length : 1} PDF(s) anexado(s)`}
+                      >
+                        <FileText className="mr-1 h-3 w-3 text-red-500" />
+                        {Array.isArray(c.documentos_pdf) ? c.documentos_pdf.length : 1} doc(s)
+                      </Badge>
+                    )}
                 </div>
 
                 {parseTags(c.tags).length > 0 && <TagBadges tags={c.tags} />}

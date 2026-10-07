@@ -76,18 +76,19 @@ export interface CadastroPublicoPayload {
   portfolio?: string
   foto?: File | null
   curriculo?: File | null
+  documentos_pdf?: File[]
 }
 
 export async function submitCadastroPublico(
   payload: CadastroPublicoPayload,
-): Promise<{ success: boolean; message: string }> {
+): Promise<{ success: boolean; message: string; documentosRecebidos?: number }> {
   const url = `${import.meta.env.VITE_POCKETBASE_URL}/backend/v1/cadastro-publico`
 
   // Campos de arquivo são enviados via multipart; o restante como campos do FormData.
   const formData = new FormData()
   const keys = Object.keys(payload) as (keyof CadastroPublicoPayload)[]
   for (const key of keys) {
-    if (key === 'foto' || key === 'curriculo') continue
+    if (key === 'foto' || key === 'curriculo' || key === 'documentos_pdf') continue
     const val = payload[key]
     if (val !== undefined && val !== null && String(val).trim() !== '') {
       formData.append(key, String(val))
@@ -95,6 +96,11 @@ export async function submitCadastroPublico(
   }
   if (payload.foto) formData.append('foto', payload.foto)
   if (payload.curriculo) formData.append('curriculo', payload.curriculo)
+  if (payload.documentos_pdf && payload.documentos_pdf.length > 0) {
+    for (const pdf of payload.documentos_pdf) {
+      formData.append('documentos_pdf', pdf)
+    }
+  }
 
   const res = await fetch(url, {
     method: 'POST',
@@ -105,7 +111,11 @@ export async function submitCadastroPublico(
   if (!res.ok) {
     throw new Error(data?.error || 'Erro ao enviar cadastro.')
   }
-  return { success: true, message: data?.message || 'Cadastro recebido com sucesso' }
+  return {
+    success: true,
+    message: data?.message || 'Cadastro recebido com sucesso',
+    documentosRecebidos: data?.documentosRecebidos,
+  }
 }
 
 /** Regenera o token de cadastro público (rota autenticada de admin). */

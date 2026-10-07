@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-07T02:03:14.519Z",
+  "generatedAt": "2026-10-07T15:29:20.234Z",
   "collections": [
     {
       "name": "users",
@@ -983,6 +983,12 @@
         {
           "name": "consentimento_data",
           "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "documentos_pdf",
+          "type": "file",
           "required": false,
           "system": false
         }

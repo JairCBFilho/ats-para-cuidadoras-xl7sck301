@@ -11,6 +11,7 @@ export const dispararPorTag = (data: {
   tags: string[]
   canal: 'email' | 'whatsapp'
   templateId: string
+  modo?: 'incluir' | 'excluir'
 }) =>
   pb.send('/backend/v1/disparar-por-tag', {
     method: 'POST',

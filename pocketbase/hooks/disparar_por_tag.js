@@ -11,6 +11,8 @@ routerAdd(
     var tags = body.tags || []
     var canal = body.canal
     var templateId = body.templateId
+    // modo: 'incluir' (apenas quem tem) ou 'excluir' (todas menos a tag selecionada)
+    var modo = String(body.modo || 'incluir').toLowerCase()
 
     if (!tags.length || !canal || !templateId)
       return e.badRequestError('tags, canal e templateId sao obrigatorios')
@@ -31,8 +33,7 @@ routerAdd(
     // Busca todos os cuidadores
     var cuidadores = $app.findRecordsByFilter('cuidadores', "id != ''", 'nome', 2000, 0)
 
-    // Filtra cuidadores que possuem pelo menos uma das tags selecionadas.
-    // As tags do cuidador sao armazenadas como string separada por virgulas.
+    // Mapa de tags selecionadas em minúsculas
     var tagsLower = {}
     for (var t = 0; t < tags.length; t++) {
       tagsLower[String(tags[t]).toLowerCase()] = true
@@ -41,8 +42,7 @@ routerAdd(
     var alvo = []
     for (var i = 0; i < cuidadores.length; i++) {
       var c = cuidadores[i]
-      var rawTags = c.getString('tags')
-      if (!rawTags) continue
+      var rawTags = c.getString('tags') || ''
       var parts = rawTags.split(',')
       var tem = false
       for (var p = 0; p < parts.length; p++) {
@@ -52,7 +52,18 @@ routerAdd(
           break
         }
       }
-      if (tem) alvo.push(c)
+
+      if (modo === 'excluir') {
+        // Todas menos a tag selecionada: inclui cuidadores que NÃO possuem nenhuma das tags selecionadas
+        if (!tem) {
+          alvo.push(c)
+        }
+      } else {
+        // Modo padrão: inclui apenas quem tem pelo menos uma das tags selecionadas
+        if (tem) {
+          alvo.push(c)
+        }
+      }
     }
 
     function substituir(texto, nome) {

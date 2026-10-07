@@ -206,15 +206,37 @@ routerAdd('POST', '/backend/v1/cadastro-publico', (e) => {
     }
   }
 
-  // --- Uploads opcionais (foto e currículo) via multipart ---
+  // --- Uploads opcionais (foto, currículo e PDFs adicionais) via multipart ---
   var fotoFiles = []
   var curriculoFiles = []
+  var pdfFiles = []
   try {
     fotoFiles = e.findUploadedFiles('foto') || []
   } catch (_) {}
   try {
     curriculoFiles = e.findUploadedFiles('curriculo') || []
   } catch (_) {}
+  try {
+    // Pode vir como 'documentos_pdf' ou 'documentos'
+    var pdfList1 = e.findUploadedFiles('documentos_pdf') || []
+    var pdfList2 = e.findUploadedFiles('documentos') || []
+    pdfFiles = pdfList1.concat(pdfList2)
+  } catch (_) {}
+
+  // Filtra apenas arquivos PDF
+  var validPdfFiles = []
+  for (var f = 0; f < pdfFiles.length; f++) {
+    var fileObj = pdfFiles[f]
+    var fname = ''
+    try {
+      fname = String(fileObj.name || '').toLowerCase()
+    } catch (_) {
+      fname = ''
+    }
+    if (fname.endsWith('.pdf')) {
+      validPdfFiles.push(fileObj)
+    }
+  }
 
   // --- Regra de CPF (decisão do Jair, 26/09) ---
   var col = $app.findCollectionByNameOrId('cuidadores')
@@ -269,15 +291,58 @@ routerAdd('POST', '/backend/v1/cadastro-publico', (e) => {
     if (curriculoFiles.length > 0) {
       record.set('curriculo', curriculoFiles[0])
     }
+
+    // Anexo de PDFs: adiciona aos existentes sem substituir
+    if (validPdfFiles.length > 0) {
+      var existingPdfs = []
+      try {
+        existingPdfs = record.getStringSlice('documentos_pdf') || []
+      } catch (_) {
+        try {
+          var rawPdfs = record.get('documentos_pdf')
+          if (Array.isArray(rawPdfs)) existingPdfs = rawPdfs
+          else if (rawPdfs) existingPdfs = [String(rawPdfs)]
+        } catch (_) {
+          existingPdfs = []
+        }
+      }
+      var combinedPdfs = existingPdfs.concat(validPdfFiles)
+      record.set('documentos_pdf', combinedPdfs)
+    }
+
     if (isNew) {
       record.set('origem', 'Formulário público')
       record.set('consentimento_lgpd', true)
       record.set('consentimento_data', new Date().toISOString().replace('T', ' '))
-    }
-    if (isDuplicate) {
+    } else {
+      // 2. Tag automática "Atualizado" quando atualiza registro existente
       var prevTags = String(record.getString('tags') || '')
-      if (prevTags.indexOf('duplicata') === -1) {
-        record.set('tags', prevTags ? prevTags + ', duplicata' : 'duplicata')
+      var tagList = prevTags
+        .split(',')
+        .map(function (t) {
+          return t.trim()
+        })
+        .filter(function (t) {
+          return t.length > 0
+        })
+
+      var hasAtualizado = false
+      for (var ti = 0; ti < tagList.length; ti++) {
+        if (tagList[ti].toLowerCase() === 'atualizado') {
+          hasAtualizado = true
+          break
+        }
+      }
+      if (!hasAtualizado) {
+        tagList.push('Atualizado')
+        record.set('tags', tagList.join(', '))
+      }
+    }
+
+    if (isDuplicate) {
+      var prevTagsDup = String(record.getString('tags') || '')
+      if (prevTagsDup.indexOf('duplicata') === -1) {
+        record.set('tags', prevTagsDup ? prevTagsDup + ', duplicata' : 'duplicata')
       }
     }
     $app.save(record)
@@ -295,5 +360,13 @@ routerAdd('POST', '/backend/v1/cadastro-publico', (e) => {
   }
 
   // Resposta genérica: nunca revela se o CPF já existia.
-  return e.json(200, { success: true, message: 'Cadastro recebido com sucesso' })
+  var successMsg = 'Cadastro recebido com sucesso'
+  if (validPdfFiles.length > 0) {
+    successMsg += ' com ' + validPdfFiles.length + ' documento(s) anexado(s)'
+  }
+  return e.json(200, {
+    success: true,
+    message: successMsg,
+    documentosRecebidos: validPdfFiles.length,
+  })
 })

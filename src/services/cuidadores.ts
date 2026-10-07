@@ -46,6 +46,7 @@ export interface Cuidador {
   certific: string
   declaracao: string
   tags?: string
+  documentos_pdf?: string[] | string
   consentimento_lgpd?: boolean
   consentimento_data?: string
   created: string
@@ -84,9 +85,10 @@ export function stringifyTags(tags: string[]): string {
   return tags.join(', ')
 }
 
-export type CuidadorInput = Omit<Partial<Cuidador>, 'foto' | 'curriculo'> & {
+export type CuidadorInput = Omit<Partial<Cuidador>, 'foto' | 'curriculo' | 'documentos_pdf'> & {
   foto?: File | null
   curriculo?: File | null
+  documentos_pdf?: (File | string)[] | null
 }
 
 export const getCuidadores = () =>

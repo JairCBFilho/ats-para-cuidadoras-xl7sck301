@@ -11,6 +11,7 @@ import {
 import { extractFieldErrors, type FieldErrors } from '@/lib/pocketbase/errors'
 import { FotoUpload } from '@/components/foto-upload'
 import { CurriculoUpload } from '@/components/CurriculoUpload'
+import { DocumentosPdfList } from '@/components/DocumentosPdfList'
 import { DatePicker } from '@/components/date-picker'
 import {
   Dialog,
@@ -677,6 +678,14 @@ export function CuidadorFormDialog({ open, onOpenChange, cuidador, onSaved }: Pr
               }}
             />
           </div>
+
+          {/* Documentos em PDF anexados pelo formulário público */}
+          {cuidador && (
+            <div className="pt-2">
+              <Label className="block mb-2">PDFs Anexados (Formulário Público)</Label>
+              <DocumentosPdfList cuidador={cuidador} />
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>

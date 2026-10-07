@@ -143,8 +143,10 @@ export default function Cadastro() {
   const [form, setForm] = useState<FormState>(EMPTY)
   const [foto, setFoto] = useState<File | null>(null)
   const [curriculo, setCurriculo] = useState<File | null>(null)
+  const [documentosPdf, setDocumentosPdf] = useState<File[]>([])
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [successDocsCount, setSuccessDocsCount] = useState(0)
   const [touched, setTouched] = useState<Record<string, boolean>>({})
 
   const authorized = useMemo(() => Boolean(token), [token])
@@ -190,12 +192,14 @@ export default function Cadastro() {
 
     setSubmitting(true)
     try {
-      await submitCadastroPublico({
+      const res = await submitCadastroPublico({
         token,
         ...form,
         foto,
         curriculo,
+        documentos_pdf: documentosPdf,
       })
+      setSuccessDocsCount(res.documentosRecebidos ?? documentosPdf.length)
       setSuccess(true)
       window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (err) {
@@ -241,10 +245,18 @@ export default function Cadastro() {
           <h1 className="text-2xl font-semibold text-neutral-900 mb-3">
             Cadastro recebido com sucesso!
           </h1>
-          <p className="text-neutral-600 leading-relaxed mb-6">
+          <p className="text-neutral-600 leading-relaxed mb-4">
             Obrigada por se cadastrar no banco de talentos da Lazuli. Nossa equipe irá analisar suas
             informações e entrar em contato quando houver uma oportunidade compatível.
           </p>
+          {successDocsCount > 0 && (
+            <div className="mb-6 rounded-2xl bg-[#F5C518]/15 border border-[#F5C518]/30 p-3 text-sm text-neutral-800">
+              <span className="font-semibold">{successDocsCount} documento(s) em PDF</span>{' '}
+              {successDocsCount === 1
+                ? 'foi recebido e anexado com sucesso ao seu cadastro.'
+                : 'foram recebidos e anexados com sucesso ao seu cadastro.'}
+            </div>
+          )}
           <p className="text-sm text-neutral-400">Você já pode fechar esta página.</p>
         </Card>
       </div>
@@ -725,6 +737,108 @@ export default function Cadastro() {
                       accept=".pdf,.doc,.docx"
                       className="hidden"
                       onChange={(e) => setCurriculo(e.target.files?.[0] ?? null)}
+                    />
+                  </label>
+                )}
+              </div>
+
+              {/* Anexo de PDFs (certificados, referências, RG, antecedentes, etc.) */}
+              <div className="sm:col-span-2 pt-2 border-t border-neutral-100">
+                <FieldLabel>Documentos em PDF (certificados, RG, antecedentes...)</FieldLabel>
+                <p className="text-xs text-neutral-500 mb-3">
+                  Aceita até 3 arquivos em formato PDF (máximo ~10MB cada). Se você já possui
+                  cadastro, os novos documentos serão adicionados aos já existentes.
+                </p>
+
+                {/* Lista de PDFs já adicionados */}
+                {documentosPdf.length > 0 && (
+                  <div className="space-y-2 mb-3">
+                    {documentosPdf.map((file, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between rounded-xl border border-neutral-200 bg-neutral-50/50 p-2.5 px-3 text-sm"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <FileText className="h-4 w-4 text-red-500 shrink-0" />
+                          <span className="font-medium text-neutral-800 truncate">{file.name}</span>
+                          <span className="text-xs text-neutral-400 shrink-0">
+                            ({(file.size / (1024 * 1024)).toFixed(2)} MB)
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDocumentosPdf((prev) => prev.filter((_, i) => i !== idx))
+                          }}
+                          className="ml-2 text-neutral-400 hover:text-red-500 p-1"
+                          title="Remover arquivo"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Botão de anexo se não atingiu o limite de 3 */}
+                {documentosPdf.length < 3 && (
+                  <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-neutral-300 p-3 hover:border-[#F5C518] hover:bg-neutral-50/50 transition-colors">
+                    <FileText className="h-5 w-5 text-neutral-500" />
+                    <span className="text-sm text-neutral-600 font-medium">
+                      {documentosPdf.length === 0
+                        ? 'Anexar documento PDF'
+                        : `Anexar outro PDF (${documentosPdf.length}/3)`}
+                    </span>
+                    <input
+                      type="file"
+                      accept="application/pdf,.pdf"
+                      multiple
+                      className="hidden"
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files || [])
+                        if (files.length === 0) return
+
+                        const validNew: File[] = []
+                        for (const file of files) {
+                          const isPdf =
+                            file.type === 'application/pdf' ||
+                            file.name.toLowerCase().endsWith('.pdf')
+                          if (!isPdf) {
+                            toast({
+                              title: 'Formato não suportado',
+                              description: `O arquivo "${file.name}" não é um PDF. Aceitamos somente arquivos PDF.`,
+                              variant: 'destructive',
+                            })
+                            continue
+                          }
+                          if (file.size > 10 * 1024 * 1024) {
+                            toast({
+                              title: 'Arquivo muito grande',
+                              description: `O arquivo "${file.name}" excede o limite de 10MB.`,
+                              variant: 'destructive',
+                            })
+                            continue
+                          }
+                          validNew.push(file)
+                        }
+
+                        if (validNew.length > 0) {
+                          setDocumentosPdf((prev) => {
+                            const combined = [...prev, ...validNew]
+                            if (combined.length > 3) {
+                              toast({
+                                title: 'Limite de arquivos',
+                                description:
+                                  'Você pode anexar no máximo 3 documentos em PDF por envio.',
+                              })
+                              return combined.slice(0, 3)
+                            }
+                            return combined
+                          })
+                        }
+                        // Reset input para permitir selecionar o mesmo arquivo se quiser
+                        e.target.value = ''
+                      }}
                     />
                   </label>
                 )}
