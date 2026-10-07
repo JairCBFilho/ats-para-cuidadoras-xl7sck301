@@ -90,8 +90,18 @@ routerAdd(
           results.push({ candidataId: candidataId, success: true })
         } else {
           var phone = telefone.replace(/[^\d]/g, '')
-          var link = 'https://wa.me/' + phone + '?text=' + encodeURIComponent(corpo)
-          results.push({ candidataId: candidataId, success: true, link: link })
+          if (phone.length === 10 || phone.length === 11) {
+            phone = '55' + phone
+          }
+          var link =
+            'https://web.whatsapp.com/send?phone=' + phone + '&text=' + encodeURIComponent(corpo)
+          results.push({
+            candidataId: candidataId,
+            nome: nome,
+            telefone: telefone,
+            success: true,
+            link: link,
+          })
         }
       } catch (err) {
         logComunicacao(nome || '', email || '', 'email', etapa, 'erro', String(err))

@@ -1,7 +1,9 @@
 import pb from '@/lib/pocketbase/client'
 
 export interface BulkSendResult {
-  candidataId: string
+  candidataId?: string
+  nome?: string
+  telefone?: string
   success: boolean
   error?: string
   link?: string

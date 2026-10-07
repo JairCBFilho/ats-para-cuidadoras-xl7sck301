@@ -112,8 +112,12 @@ routerAdd(
       var telefone = cuid2.getString('celular') || cuid2.getString('telefone') || ''
       var phone = String(telefone).replace(/[^\d]/g, '')
       if (!phone) continue
+      if (phone.length === 10 || phone.length === 11) {
+        phone = '55' + phone
+      }
       var corpo2 = substituir(corpoTpl, nome2)
-      var link = 'https://wa.me/' + phone + '?text=' + encodeURIComponent(corpo2)
+      var link =
+        'https://web.whatsapp.com/send?phone=' + phone + '&text=' + encodeURIComponent(corpo2)
       results.push({ nome: nome2, telefone: telefone, link: link, success: true })
     }
     return e.json(200, { results: results, total: alvo.length })
