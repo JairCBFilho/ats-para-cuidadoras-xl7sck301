@@ -46,6 +46,8 @@ export interface Cuidador {
   certific: string
   declaracao: string
   tags?: string
+  consentimento_lgpd?: boolean
+  consentimento_data?: string
   created: string
   updated: string
 }

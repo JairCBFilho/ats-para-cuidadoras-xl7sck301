@@ -14,7 +14,7 @@ function todayStamp(): string {
 }
 
 /** Colunas completas exportadas no Excel (todos os campos visíveis do Cuidador). */
-const EXCEL_COLUMNS: { header: string; key: keyof Cuidador | 'tags_arr' }[] = [
+const EXCEL_COLUMNS: { header: string; key: keyof Cuidador | 'tags_arr' | 'cpf_mask' }[] = [
   { header: 'Nome', key: 'nome' },
   { header: 'E-mail', key: 'email' },
   { header: 'Telefone', key: 'telefone' },
