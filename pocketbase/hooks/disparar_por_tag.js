@@ -33,21 +33,43 @@ routerAdd(
     // Busca todos os cuidadores
     var cuidadores = $app.findRecordsByFilter('cuidadores', "id != ''", 'nome', 2000, 0)
 
-    // Mapa de tags selecionadas em minúsculas
+    // Helper inline para parsing robusto de tags
+    var parseTagsInline = function (raw) {
+      if (!raw) return []
+      var parts = String(raw).split(',')
+      var out = []
+      var seen = {}
+      for (var p = 0; p < parts.length; p++) {
+        var item = String(parts[p] || '').trim()
+        if (!item) continue
+        var low = item.toLowerCase()
+        if (!seen[low]) {
+          seen[low] = true
+          out.push(item)
+        }
+      }
+      return out
+    }
+
+    // Mapa de tags selecionadas em minúsculas (ignora vazias e com trim)
     var tagsLower = {}
     for (var t = 0; t < tags.length; t++) {
-      tagsLower[String(tags[t]).toLowerCase()] = true
+      var cleanTag = String(tags[t] || '')
+        .trim()
+        .toLowerCase()
+      if (cleanTag) {
+        tagsLower[cleanTag] = true
+      }
     }
 
     var alvo = []
     for (var i = 0; i < cuidadores.length; i++) {
       var c = cuidadores[i]
-      var rawTags = c.getString('tags') || ''
-      var parts = rawTags.split(',')
+      var cuidadorTags = parseTagsInline(c.getString('tags'))
       var tem = false
-      for (var p = 0; p < parts.length; p++) {
-        var tag = parts[p].trim().toLowerCase()
-        if (tag && tagsLower[tag]) {
+      for (var ct = 0; ct < cuidadorTags.length; ct++) {
+        var ctagLow = cuidadorTags[ct].toLowerCase()
+        if (tagsLower[ctagLow]) {
           tem = true
           break
         }

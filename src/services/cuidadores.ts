@@ -71,19 +71,7 @@ export const SUGGESTED_TAGS = [
   'ventilação',
 ] as const
 
-/** Converte o campo `tags` (string separada por vírgulas) num array de tags limpo */
-export function parseTags(tags?: string): string[] {
-  if (!tags) return []
-  return tags
-    .split(',')
-    .map((t) => t.trim())
-    .filter((t) => t.length > 0)
-}
-
-/** Junta um array de tags num valor para o campo `tags` */
-export function stringifyTags(tags: string[]): string {
-  return tags.join(', ')
-}
+export { parseTags, stringifyTags, hasTag } from '@/lib/tags'
 
 export type CuidadorInput = Omit<Partial<Cuidador>, 'foto' | 'curriculo' | 'documentos_pdf'> & {
   foto?: File | null

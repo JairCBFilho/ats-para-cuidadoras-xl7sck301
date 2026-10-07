@@ -35,6 +35,7 @@ import { getCuidadores, parseTags, SUGGESTED_TAGS, type Cuidador } from '@/servi
 import { getEmailTemplates, ETAPA_LABELS, type EmailTemplate } from '@/services/email-templates'
 import { dispararPorTag, type DisparoPorTagEmailResult } from '@/services/disparo-por-tag'
 import { useWhatsappQueue } from '@/hooks/use-whatsapp-queue'
+import { extractValidWhatsAppLinks, applyTemplateReplacements } from '@/hooks/use-bulk-batch'
 import type { BulkSendResult } from '@/services/bulk-send'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -123,18 +124,8 @@ export function ComunicacaoPorTagDialog({ open, onOpenChange }: Props) {
         ? cuidadores.find((c) => !parseTags(c.tags).some((t) => lower.has(t.toLowerCase())))
         : cuidadores.find((c) => parseTags(c.tags).some((t) => lower.has(t.toLowerCase())))
     const nome = primeiro?.nome || '{nome_candidata}'
-    const assunto = tpl.assunto
-      .replace(/{nome_candidata}/g, nome)
-      .replace(/{nome_vaga}/g, '')
-      .replace(/{cargo}/g, '')
-      .replace(/{etapa}/g, '')
-      .replace(/{data_entrevista}/g, 'data a confirmar')
-    const corpo = tpl.corpo
-      .replace(/{nome_candidata}/g, nome)
-      .replace(/{nome_vaga}/g, '')
-      .replace(/{cargo}/g, '')
-      .replace(/{etapa}/g, '')
-      .replace(/{data_entrevista}/g, 'data a confirmar')
+    const assunto = applyTemplateReplacements(tpl.assunto, { nomeCandidata: nome })
+    const corpo = applyTemplateReplacements(tpl.corpo, { nomeCandidata: nome })
     return { assunto, corpo }
   }, [templateId, templates, cuidadores, selectedTags, modo])
 
@@ -143,14 +134,18 @@ export function ComunicacaoPorTagDialog({ open, onOpenChange }: Props) {
     try {
       const res = await dispararPorTag({ tags: selectedTags, canal, templateId, modo })
       if (canal === 'whatsapp') {
-        const links = (res as { results: BulkSendResult[]; total: number }).results.filter(
-          (r) => r.success && r.link,
-        )
+        const rawResults = (res as { results: BulkSendResult[]; total: number }).results || []
+        const links = extractValidWhatsAppLinks(rawResults)
         if (links.length === 0) {
           toast.error('Nenhum link de WhatsApp gerado')
           return
         }
-        queue.start(links)
+        queue.start(links, {
+          origem: 'comunicacao-por-tag',
+          canal: 'whatsapp',
+          tag: selectedTags.join(','),
+          templateId,
+        })
       } else {
         setEmailResult(res as DisparoPorTagEmailResult)
       }
@@ -233,6 +228,42 @@ export function ComunicacaoPorTagDialog({ open, onOpenChange }: Props) {
         ) : queue.queueState === 'idle' ? (
           <>
             <div className="space-y-4">
+              {/* Banner de retomada da fila de WhatsApp se existir no localStorage */}
+              {queue.hasSavedQueue && queue.savedQueueData && (
+                <div className="rounded-2xl border border-amber-300 bg-amber-50/80 p-3.5 space-y-2 shadow-sm">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="text-xs font-bold text-amber-950 flex items-center gap-1.5">
+                        <RotateCcw className="h-4 w-4 text-amber-700" />
+                        Envio em andamento encontrado
+                      </p>
+                      <p className="text-xs text-amber-900 mt-0.5">
+                        Há uma fila com{' '}
+                        <strong>{queue.savedQueueData.items.length} destinatários</strong> (
+                        {queue.savedQueueData.currentIndex} concluídos) salva anteriormente.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 pt-1">
+                    <Button
+                      size="sm"
+                      onClick={() => queue.resumeSavedQueue()}
+                      className="rounded-full bg-amber-950 text-white hover:bg-amber-900 text-xs px-3 h-8"
+                    >
+                      <RotateCcw className="h-3 w-3 mr-1.5" /> Retomar de onde parei
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => queue.discardSavedQueue()}
+                      className="rounded-full text-xs text-amber-900 hover:bg-amber-100 h-8"
+                    >
+                      Descartar e começar nova
+                    </Button>
+                  </div>
+                </div>
+              )}
+
               {/* Modo de filtro: Incluir vs Excluir */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">

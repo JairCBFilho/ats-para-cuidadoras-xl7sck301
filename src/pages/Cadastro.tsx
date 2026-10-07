@@ -18,6 +18,7 @@ import {
   formatCPF,
   formatPhone,
   submitCadastroPublico,
+  validarTokenCadastro,
 } from '@/services/cadastro-publico'
 import { useToast } from '@/hooks/use-toast'
 import lazuliLogo from '@/assets/simbolo-lazuli-cmyk-fundo-azul-f722e.jpg'
@@ -144,12 +145,42 @@ export default function Cadastro() {
   const [foto, setFoto] = useState<File | null>(null)
   const [curriculo, setCurriculo] = useState<File | null>(null)
   const [documentosPdf, setDocumentosPdf] = useState<File[]>([])
+  const [validatingToken, setValidatingToken] = useState(true)
+  const [tokenValid, setTokenValid] = useState<boolean | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
   const [successDocsCount, setSuccessDocsCount] = useState(0)
   const [touched, setTouched] = useState<Record<string, boolean>>({})
 
-  const authorized = useMemo(() => Boolean(token), [token])
+  useEffect(() => {
+    let active = true
+    if (!token) {
+      setValidatingToken(false)
+      setTokenValid(false)
+      return
+    }
+
+    setValidatingToken(true)
+    validarTokenCadastro(token)
+      .then((isValid) => {
+        if (!active) return
+        setTokenValid(isValid)
+      })
+      .catch(() => {
+        if (!active) return
+        setTokenValid(false)
+      })
+      .finally(() => {
+        if (!active) return
+        setValidatingToken(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [token])
+
+  const authorized = tokenValid === true
 
   useEffect(() => {
     if (!authorized) return
@@ -211,6 +242,23 @@ export default function Cadastro() {
     } finally {
       setSubmitting(false)
     }
+  }
+
+  // --- Estado de loading durante validação do token ---
+  if (validatingToken) {
+    return (
+      <div className="min-h-screen bg-[#FBF7EF] flex items-center justify-center p-6">
+        <Card className="max-w-md w-full rounded-3xl border-neutral-200 bg-white p-10 text-center shadow-sm">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#F5C518]/20">
+            <Loader2 className="h-7 w-7 text-neutral-800 animate-spin" />
+          </div>
+          <h2 className="text-xl font-semibold text-neutral-900 mb-2">
+            Validando link de acesso...
+          </h2>
+          <p className="text-sm text-neutral-500">Por favor, aguarde alguns instantes.</p>
+        </Card>
+      </div>
+    )
   }
 
   // --- Tela de acesso não autorizado ---

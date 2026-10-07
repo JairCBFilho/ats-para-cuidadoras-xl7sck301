@@ -24,8 +24,20 @@ import {
   deleteCuidador,
   updateCuidador,
   parseTags,
+  stringifyTags,
+  hasTag,
   type Cuidador,
 } from '@/services/cuidadores'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { CuidadorFormDialog } from '@/components/cuidador-form-dialog'
 import { TagEditor, TagBadges } from '@/components/TagEditor'
 import { useFileUrl } from '@/hooks/use-file-url'
@@ -51,6 +63,7 @@ import {
 import { toast } from 'sonner'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
 import { exportCuidadoresExcel, exportCuidadoresPDF } from '@/lib/export-talentos'
+import { cn } from '@/lib/utils'
 
 function CuidadorPhoto({ cuidador }: { cuidador: Cuidador }) {
   const photoUrl = useFileUrl(cuidador, cuidador.foto)
@@ -88,6 +101,15 @@ export default function BancoTalentos() {
   const [filterExpIlp, setFilterExpIlp] = useState('')
   const [filterInicioImediato, setFilterInicioImediato] = useState('')
   const [filterTag, setFilterTag] = useState('all')
+  const [showInativas, setShowInativas] = useState(false)
+
+  // Paginação / Carregar mais (blocos de 50)
+  const PAGE_SIZE = 50
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+
+  // Cuidadora pendente de exclusão lógica (AlertDialog)
+  const [cuidadorToDelete, setCuidadorToDelete] = useState<Cuidador | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   // Tags já usadas (para o filtro por tag)
   const availableTags = useMemo(() => {
@@ -123,6 +145,13 @@ export default function BancoTalentos() {
 
     return cuidadores
       .filter((c) => {
+        const isInactive = hasTag(c.tags, 'Inativa')
+        if (!showInativas && isInactive) return false
+        if (showInativas && filterTag === 'all' && !isInactive) {
+          // Quando showInativas está marcado, exibe as inativas (ou todas se o usuário quiser)
+          // mas se o filtro for especificamente "Mostrar inativas", ele inclui
+        }
+
         if (!contains(c.nome, filterNome)) return false
         if (filterDisp !== 'all' && c.disponibilidade !== filterDisp) return false
         if (!contains(c.especialidades, filterEsp)) return false
@@ -135,7 +164,7 @@ export default function BancoTalentos() {
         if (filterTurno !== 'all' && c.turno !== filterTurno) return false
         if (!contains(c.experiencia_ilp, filterExpIlp)) return false
         if (!contains(c.inicio_imediato, filterInicioImediato)) return false
-        if (filterTag !== 'all' && !parseTags(c.tags).includes(filterTag)) return false
+        if (filterTag !== 'all' && !hasTag(c.tags, filterTag)) return false
         return true
       })
       .sort((a, b) => {
@@ -159,14 +188,66 @@ export default function BancoTalentos() {
     filterExpIlp,
     filterInicioImediato,
     filterTag,
+    showInativas,
     sortOrder,
   ])
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Deseja realmente excluir este cuidador?')) return
+  // Resetar a paginação ao mudar qualquer critério de busca/filtro/ordenação
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE)
+  }, [
+    filterNome,
+    filterDisp,
+    filterEsp,
+    filterLoc,
+    filterCidade,
+    filterBairro,
+    filterDispHorario,
+    filterCurso,
+    filterTurno,
+    filterExpIlp,
+    filterInicioImediato,
+    filterTag,
+    showInativas,
+    sortOrder,
+  ])
+
+  const visibleCuidadores = useMemo(() => {
+    return filtered.slice(0, visibleCount)
+  }, [filtered, visibleCount])
+
+  // Exclusão lógica: adiciona a tag "Inativa" sem duplicar
+  const handleConfirmLogicalDelete = async () => {
+    if (!cuidadorToDelete) return
+    setDeleting(true)
     try {
-      await deleteCuidador(id)
-      toast.success('Cuidador excluído com sucesso!')
+      const currentTags = parseTags(cuidadorToDelete.tags)
+      const hasInativa = currentTags.some((t) => t.toLowerCase() === 'inativa')
+      const updatedTags = hasInativa
+        ? stringifyTags(currentTags)
+        : stringifyTags([...currentTags, 'Inativa'])
+
+      await updateCuidador(cuidadorToDelete.id, { tags: updatedTags })
+      setCuidadores((prev) =>
+        prev.map((x) => (x.id === cuidadorToDelete.id ? { ...x, tags: updatedTags } : x)),
+      )
+      toast.success(`${cuidadorToDelete.nome} foi marcada como Inativa.`)
+      setCuidadorToDelete(null)
+    } catch (err) {
+      toast.error(getErrorMessage(err))
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  // Reativar cuidadora (remove a tag "Inativa")
+  const handleReativar = async (c: Cuidador) => {
+    try {
+      const currentTags = parseTags(c.tags)
+      const updatedTags = stringifyTags(currentTags.filter((t) => t.toLowerCase() !== 'inativa'))
+      await updateCuidador(c.id, { tags: updatedTags })
+      setCuidadores((prev) => prev.map((x) => (x.id === c.id ? { ...x, tags: updatedTags } : x)))
+      toast.success(`${c.nome} foi reativada no Banco de Talentos.`)
     } catch (err) {
       toast.error(getErrorMessage(err))
     }
@@ -190,6 +271,7 @@ export default function BancoTalentos() {
     setFilterExpIlp('')
     setFilterInicioImediato('')
     setFilterTag('all')
+    setShowInativas(false)
   }
 
   return (
@@ -314,6 +396,21 @@ export default function BancoTalentos() {
             <ChevronDown className="ml-2 h-4 w-4" />
           )}
         </Button>
+
+        {/* Toggle / Filtro para exibir inativas */}
+        <Button
+          variant={showInativas ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setShowInativas((v) => !v)}
+          className={cn(
+            'rounded-full text-xs h-9 transition-colors',
+            showInativas
+              ? 'bg-neutral-900 text-white hover:bg-neutral-800'
+              : 'text-neutral-700 hover:bg-neutral-100',
+          )}
+        >
+          {showInativas ? 'Ocultar inativas' : 'Mostrar inativas'}
+        </Button>
       </div>
 
       {/* Filtros avançados (colapsáveis) */}
@@ -417,78 +514,141 @@ export default function BancoTalentos() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((c) => (
-            <Card key={c.id} className="overflow-hidden hover:shadow-md transition-shadow">
-              <CardContent className="p-4 space-y-3">
-                <div className="flex items-start gap-3">
-                  <CuidadorPhoto cuidador={c} />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate">{c.nome}</p>
-                    <p className="text-sm text-muted-foreground truncate">{c.email}</p>
-                    {c.localizacao && (
-                      <p className="text-xs text-muted-foreground flex items-center gap-1 truncate">
-                        <MapPin className="h-3 w-3" />
-                        {c.localizacao}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  <Badge variant={c.disponibilidade === 'disponível' ? 'default' : 'secondary'}>
-                    {c.disponibilidade || '—'}
-                  </Badge>
-                  {c.turno && (
-                    <Badge variant="outline">
-                      <Clock className="mr-1 h-3 w-3" />
-                      {c.turno}
-                    </Badge>
+        <div className="space-y-6">
+          {/* Contador de exibição */}
+          <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
+            <p>
+              Exibindo{' '}
+              <span className="font-semibold text-neutral-900">{visibleCuidadores.length}</span> de{' '}
+              <span className="font-semibold text-neutral-900">{filtered.length}</span> cuidadoras
+              {showInativas && ' (incluindo inativas)'}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {visibleCuidadores.map((c) => {
+              const isInactive = hasTag(c.tags, 'Inativa')
+              return (
+                <Card
+                  key={c.id}
+                  className={cn(
+                    'overflow-hidden hover:shadow-md transition-shadow',
+                    isInactive && 'opacity-70 border-dashed border-neutral-300 bg-neutral-50/70',
                   )}
-                  {c.especialidades && (
-                    <Badge variant="outline">
-                      <Star className="mr-1 h-3 w-3" />
-                      {c.especialidades}
-                    </Badge>
-                  )}
-                  {c.documentos_pdf &&
-                    (Array.isArray(c.documentos_pdf)
-                      ? c.documentos_pdf.length > 0
-                      : Boolean(c.documentos_pdf)) && (
-                      <Badge
-                        variant="secondary"
-                        className="bg-amber-100 text-amber-900 border-amber-200 dark:bg-amber-950/40 dark:text-amber-200"
-                        title={`${Array.isArray(c.documentos_pdf) ? c.documentos_pdf.length : 1} PDF(s) anexado(s)`}
-                      >
-                        <FileText className="mr-1 h-3 w-3 text-red-500" />
-                        {Array.isArray(c.documentos_pdf) ? c.documentos_pdf.length : 1} doc(s)
+                >
+                  <CardContent className="p-4 space-y-3">
+                    <div className="flex items-start gap-3">
+                      <CuidadorPhoto cuidador={c} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <p className="font-medium truncate">{c.nome}</p>
+                          {isInactive && (
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] bg-red-50 text-red-700 border-red-200 shrink-0"
+                            >
+                              Inativa
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground truncate">{c.email}</p>
+                        {c.localizacao && (
+                          <p className="text-xs text-muted-foreground flex items-center gap-1 truncate">
+                            <MapPin className="h-3 w-3" />
+                            {c.localizacao}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      <Badge variant={c.disponibilidade === 'disponível' ? 'default' : 'secondary'}>
+                        {c.disponibilidade || '—'}
                       </Badge>
-                    )}
-                </div>
+                      {c.turno && (
+                        <Badge variant="outline">
+                          <Clock className="mr-1 h-3 w-3" />
+                          {c.turno}
+                        </Badge>
+                      )}
+                      {c.especialidades && (
+                        <Badge variant="outline">
+                          <Star className="mr-1 h-3 w-3" />
+                          {c.especialidades}
+                        </Badge>
+                      )}
+                      {c.documentos_pdf &&
+                        (Array.isArray(c.documentos_pdf)
+                          ? c.documentos_pdf.length > 0
+                          : Boolean(c.documentos_pdf)) && (
+                          <Badge
+                            variant="secondary"
+                            className="bg-amber-100 text-amber-900 border-amber-200 dark:bg-amber-950/40 dark:text-amber-200"
+                            title={`${Array.isArray(c.documentos_pdf) ? c.documentos_pdf.length : 1} PDF(s) anexado(s)`}
+                          >
+                            <FileText className="mr-1 h-3 w-3 text-red-500" />
+                            {Array.isArray(c.documentos_pdf) ? c.documentos_pdf.length : 1} doc(s)
+                          </Badge>
+                        )}
+                    </div>
 
-                {parseTags(c.tags).length > 0 && <TagBadges tags={c.tags} />}
+                    {parseTags(c.tags).length > 0 && <TagBadges tags={c.tags} />}
 
-                <div className="flex justify-end gap-1">
-                  <TagEditor tags={c.tags} onChange={(tags) => handleTagsChange(c, tags)} />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => {
-                      setEditing(c)
-                      setDialogOpen(true)
-                    }}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" onClick={() => handleDelete(c.id)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                    <div className="flex justify-end gap-1">
+                      <TagEditor tags={c.tags} onChange={(tags) => handleTagsChange(c, tags)} />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          setEditing(c)
+                          setDialogOpen(true)
+                        }}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      {isInactive ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleReativar(c)}
+                          className="text-xs text-emerald-700 hover:text-emerald-800"
+                          title="Reativar cuidadora"
+                        >
+                          Reativar
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setCuidadorToDelete(c)}
+                          title="Excluir cuidadora"
+                        >
+                          <Trash2 className="h-4 w-4 text-neutral-500 hover:text-red-600" />
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })}
+          </div>
+
+          {/* Botão "Carregar mais" */}
+          {visibleCount < filtered.length && (
+            <div className="flex flex-col items-center justify-center gap-2 pt-4 pb-8">
+              <Button
+                variant="outline"
+                onClick={() => setVisibleCount((prev) => prev + PAGE_SIZE)}
+                className="rounded-full px-8 py-2 font-medium bg-white hover:bg-neutral-50 shadow-sm border-neutral-300"
+              >
+                Carregar mais ({filtered.length - visibleCount} restantes)
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                Mostrando {visibleCount} de {filtered.length} cuidadoras
+              </p>
+            </div>
+          )}
         </div>
       )}
-
       <CuidadorFormDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
@@ -502,6 +662,45 @@ export default function BancoTalentos() {
         onCompleted={loadData}
       />
       <ComunicacaoPorTagDialog open={comunicacaoOpen} onOpenChange={setComunicacaoOpen} />
+
+      {/* AlertDialog de confirmação de exclusão (Lazuli design: #FAF9F5, rounded-3xl) */}
+      <AlertDialog
+        open={Boolean(cuidadorToDelete)}
+        onOpenChange={(v) => {
+          if (!v) setCuidadorToDelete(null)
+        }}
+      >
+        <AlertDialogContent className="rounded-3xl bg-[#FAF9F5] border-neutral-200 p-6 sm:p-8 max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-xl font-bold text-neutral-900">
+              Excluir {cuidadorToDelete?.nome}?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-sm text-neutral-600 leading-relaxed pt-1">
+              Esta ação marcará a cuidadora com a tag <strong>"Inativa"</strong> e ela não aparecerá
+              mais na listagem padrão do Banco de Talentos. Você poderá visualizá-la novamente a
+              qualquer momento ativando o filtro "Mostrar inativas".
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2 sm:gap-3 pt-4">
+            <AlertDialogCancel
+              disabled={deleting}
+              className="rounded-full border-neutral-300 text-neutral-700 hover:bg-neutral-100"
+            >
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleting}
+              onClick={(e) => {
+                e.preventDefault()
+                handleConfirmLogicalDelete()
+              }}
+              className="rounded-full bg-red-600 hover:bg-red-700 text-white font-medium"
+            >
+              {deleting ? 'Excluindo...' : 'Sim, excluir cuidadora'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

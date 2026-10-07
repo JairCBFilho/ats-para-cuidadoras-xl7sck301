@@ -34,6 +34,35 @@ routerAdd('POST', '/backend/v1/proxy-ia', (e) => {
     return e.json(401, { error: 'Nao autorizado' })
   }
 
+  // --- Rate limiting via $app.store() por IP (30 reqs/minuto) ---
+  var ip = e.realIP() || 'unknown'
+  var rlKey = 'proxy_ia_rl:' + ip
+  var store = $app.store()
+  var now = Date.now()
+  var windowMs = 60 * 1000
+  var maxReqs = 30
+  var entry = null
+  try {
+    entry = store.get(rlKey)
+  } catch (_) {
+    entry = null
+  }
+  if (!entry || typeof entry !== 'object') {
+    entry = { count: 0, first: now }
+  }
+  if (now - entry.first > windowMs) {
+    entry = { count: 0, first: now }
+  }
+  entry.count = entry.count + 1
+  store.set(rlKey, entry)
+  if (entry.count > maxReqs) {
+    console.log('[proxy-ia] RATE LIMIT EXCEDIDO: ip=' + ip + ' count=' + entry.count)
+    return e.json(429, {
+      error:
+        'Muitas requisições ao proxy de IA. Limite de 30 req/min excedido. Tente novamente em instantes.',
+    })
+  }
+
   // --- Parse e validacao do body ---
   var body = requestInfo.body || {}
   var agent = body.agent

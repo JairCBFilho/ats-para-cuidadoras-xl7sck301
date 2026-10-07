@@ -3,6 +3,7 @@ import { bulkSend } from '@/services/bulk-send'
 import { getEmailTemplates, ETAPA_LABELS, type EmailTemplate } from '@/services/email-templates'
 import { getConfiguracoes } from '@/services/configuracoes'
 import { useWhatsappQueue } from '@/hooks/use-whatsapp-queue'
+import { extractValidWhatsAppLinks, countSuccessfulSends } from '@/hooks/use-bulk-batch'
 import {
   Dialog,
   DialogContent,
@@ -90,14 +91,19 @@ export function BulkSendDialog({ open, onOpenChange, candidataIds, vagaId }: Pro
     try {
       const res = await bulkSend({ candidataIds, vagaId, etapa, canal })
       if (canal === 'whatsapp') {
-        const links = res.results.filter((r) => r.success && r.link)
+        const links = extractValidWhatsAppLinks(res.results)
         if (links.length === 0) {
           toast.error('Nenhum link de WhatsApp gerado')
           return
         }
-        queue.start(links)
+        queue.start(links, {
+          origem: 'bulk-send',
+          canal: 'whatsapp',
+          etapa,
+          vagaId,
+        })
       } else {
-        const count = res.results.filter((r) => r.success).length
+        const count = countSuccessfulSends(res.results)
         toast.success(`${count} e-mails enviados!`)
         onOpenChange(false)
       }
@@ -138,6 +144,42 @@ export function BulkSendDialog({ open, onOpenChange, candidataIds, vagaId }: Pro
         {queue.queueState === 'idle' ? (
           <>
             <div className="space-y-4">
+              {/* Banner de retomada da fila de WhatsApp se existir no localStorage */}
+              {queue.hasSavedQueue && queue.savedQueueData && (
+                <div className="rounded-2xl border border-amber-300 bg-amber-50/80 p-3.5 space-y-2 shadow-sm">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="text-xs font-bold text-amber-950 flex items-center gap-1.5">
+                        <Clock className="h-4 w-4 text-amber-700" />
+                        Envio em andamento encontrado
+                      </p>
+                      <p className="text-xs text-amber-900 mt-0.5">
+                        Há uma fila com{' '}
+                        <strong>{queue.savedQueueData.items.length} destinatários</strong> (
+                        {queue.savedQueueData.currentIndex} concluídos) salva anteriormente.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 pt-1">
+                    <Button
+                      size="sm"
+                      onClick={() => queue.resumeSavedQueue()}
+                      className="rounded-full bg-amber-950 text-white hover:bg-amber-900 text-xs px-3 h-8"
+                    >
+                      <RotateCcw className="h-3 w-3 mr-1.5" /> Retomar de onde parei
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => queue.discardSavedQueue()}
+                      className="rounded-full text-xs text-amber-900 hover:bg-amber-100 h-8"
+                    >
+                      Descartar e começar nova
+                    </Button>
+                  </div>
+                </div>
+              )}
+
               <p className="text-sm text-muted-foreground">
                 {candidataIds.length} candidata(s) selecionada(s)
               </p>

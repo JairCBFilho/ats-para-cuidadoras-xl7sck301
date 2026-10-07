@@ -118,7 +118,20 @@ export async function submitCadastroPublico(
   }
 }
 
-/** Regenera o token de cadastro público (rota autenticada de admin). */
+/** Valida se o token de cadastro público é autêntico e atualizado. */
+export async function validarTokenCadastro(token: string): Promise<boolean> {
+  if (!token || !token.trim()) return false
+  const url = `${import.meta.env.VITE_POCKETBASE_URL}/backend/v1/validar-token?token=${encodeURIComponent(token.trim())}`
+  try {
+    const res = await fetch(url)
+    if (!res.ok) return false
+    const data = await res.json().catch(() => ({}))
+    return Boolean(data?.valid)
+  } catch {
+    return false
+  }
+}
+
 export async function regenerarTokenCadastro(): Promise<string> {
   const url = `${import.meta.env.VITE_POCKETBASE_URL}/backend/v1/cadastro-publico/regenerar-token`
   const res = await fetch(url, {

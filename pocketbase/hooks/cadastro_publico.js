@@ -207,6 +207,34 @@ routerAdd('POST', '/backend/v1/cadastro-publico', (e) => {
   }
 
   // --- Uploads opcionais (foto, currículo e PDFs adicionais) via multipart ---
+  // Helper para obter MIME type do arquivo
+  var getMimeType = function (fileObj) {
+    if (!fileObj) return ''
+    try {
+      // multipart.FileHeader no Goja possui Header map com Content-Type
+      if (fileObj.header) {
+        var ct =
+          fileObj.header.get('Content-Type') ||
+          (fileObj.header['Content-Type'] && fileObj.header['Content-Type'][0])
+        if (ct) return String(ct).toLowerCase().split(';')[0].trim()
+      }
+    } catch (_) {}
+    try {
+      if (fileObj.contentType) return String(fileObj.contentType).toLowerCase().split(';')[0].trim()
+      if (fileObj.type) return String(fileObj.type).toLowerCase().split(';')[0].trim()
+    } catch (_) {}
+    return ''
+  }
+
+  var getFileSize = function (fileObj) {
+    if (!fileObj) return 0
+    try {
+      if (typeof fileObj.size === 'number') return fileObj.size
+      if (fileObj.size) return parseInt(fileObj.size, 10) || 0
+    } catch (_) {}
+    return 0
+  }
+
   var fotoFiles = []
   var curriculoFiles = []
   var pdfFiles = []
@@ -223,7 +251,56 @@ routerAdd('POST', '/backend/v1/cadastro-publico', (e) => {
     pdfFiles = pdfList1.concat(pdfList2)
   } catch (_) {}
 
-  // Filtra apenas arquivos PDF
+  var MAX_PDF_SIZE = 10 * 1024 * 1024 // 10MB
+  var discardedUploads = []
+
+  // Validação da foto: aceita apenas formatos de imagem válidos (JPEG, PNG, WEBP)
+  var validFotoFile = null
+  if (fotoFiles.length > 0) {
+    var fObj = fotoFiles[0]
+    var fName = String(fObj.name || '').toLowerCase()
+    var fMime = getMimeType(fObj)
+    var isImageExt = /\.(jpe?g|png|webp)$/i.test(fName)
+    var isImageMime =
+      !fMime ||
+      fMime === 'image/jpeg' ||
+      fMime === 'image/jpg' ||
+      fMime === 'image/png' ||
+      fMime === 'image/webp' ||
+      fMime.indexOf('image/') === 0
+
+    if (isImageExt && isImageMime) {
+      validFotoFile = fObj
+    } else {
+      discardedUploads.push('foto (formato inválido, aceito apenas JPG/PNG/WEBP)')
+    }
+  }
+
+  // Validação do currículo: aceita PDF ou documentos Word
+  var validCurriculoFile = null
+  if (curriculoFiles.length > 0) {
+    var cObj = curriculoFiles[0]
+    var cName = String(cObj.name || '').toLowerCase()
+    var cMime = getMimeType(cObj)
+    var cSize = getFileSize(cObj)
+    var isDocExt = /\.(pdf|docx?)$/i.test(cName)
+    var isDocMime =
+      !cMime ||
+      cMime === 'application/pdf' ||
+      cMime === 'application/msword' ||
+      cMime === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+      cMime === 'application/octet-stream'
+
+    if (cSize > MAX_PDF_SIZE) {
+      discardedUploads.push('currículo (excede 10MB)')
+    } else if (isDocExt && isDocMime) {
+      validCurriculoFile = cObj
+    } else {
+      discardedUploads.push('currículo (MIME ou extensão inválida, aceito apenas PDF/DOC/DOCX)')
+    }
+  }
+
+  // Validação dos PDFs adicionais: MIME application/pdf + extensão .pdf + limite 10MB
   var validPdfFiles = []
   for (var f = 0; f < pdfFiles.length; f++) {
     var fileObj = pdfFiles[f]
@@ -233,8 +310,26 @@ routerAdd('POST', '/backend/v1/cadastro-publico', (e) => {
     } catch (_) {
       fname = ''
     }
-    if (fname.endsWith('.pdf')) {
+    var fmime = getMimeType(fileObj)
+    var fsize = getFileSize(fileObj)
+
+    if (fsize > MAX_PDF_SIZE) {
+      discardedUploads.push(fname || 'PDF ' + (f + 1) + ' (excede limite de 10MB)')
+      continue
+    }
+
+    var hasPdfExt = fname.endsWith('.pdf')
+    // Se o MIME estiver presente, precisa ser application/pdf (ou application/x-pdf).
+    // Se vier vazio em algum ambiente estranho de upload multipart, a extensão garante,
+    // mas se vier preenchido não pode ser outro tipo.
+    var isPdfMime = !fmime || fmime === 'application/pdf' || fmime === 'application/x-pdf'
+
+    if (hasPdfExt && isPdfMime) {
       validPdfFiles.push(fileObj)
+    } else {
+      discardedUploads.push(
+        fname || 'arquivo (não é um PDF válido: MIME ' + (fmime || 'desconhecido') + ')',
+      )
     }
   }
 
@@ -285,11 +380,11 @@ routerAdd('POST', '/backend/v1/cadastro-publico', (e) => {
       if (FORBIDDEN[field]) continue
       record.set(field, data[field])
     }
-    if (fotoFiles.length > 0) {
-      record.set('foto', fotoFiles[0])
+    if (validFotoFile) {
+      record.set('foto', validFotoFile)
     }
-    if (curriculoFiles.length > 0) {
-      record.set('curriculo', curriculoFiles[0])
+    if (validCurriculoFile) {
+      record.set('curriculo', validCurriculoFile)
     }
 
     // Anexo de PDFs: adiciona aos existentes sem substituir
@@ -317,23 +412,20 @@ routerAdd('POST', '/backend/v1/cadastro-publico', (e) => {
     } else {
       // 2. Tag automática "Atualizado" quando atualiza registro existente
       var prevTags = String(record.getString('tags') || '')
-      var tagList = prevTags
-        .split(',')
-        .map(function (t) {
-          return t.trim()
-        })
-        .filter(function (t) {
-          return t.length > 0
-        })
-
-      var hasAtualizado = false
-      for (var ti = 0; ti < tagList.length; ti++) {
-        if (tagList[ti].toLowerCase() === 'atualizado') {
-          hasAtualizado = true
-          break
+      var partsTags = prevTags.split(',')
+      var tagList = []
+      var seenTags = {}
+      for (var pi = 0; pi < partsTags.length; pi++) {
+        var pt = String(partsTags[pi] || '').trim()
+        if (!pt) continue
+        var lowPt = pt.toLowerCase()
+        if (!seenTags[lowPt]) {
+          seenTags[lowPt] = true
+          tagList.push(pt)
         }
       }
-      if (!hasAtualizado) {
+
+      if (!seenTags['atualizado']) {
         tagList.push('Atualizado')
         record.set('tags', tagList.join(', '))
       }
@@ -341,8 +433,18 @@ routerAdd('POST', '/backend/v1/cadastro-publico', (e) => {
 
     if (isDuplicate) {
       var prevTagsDup = String(record.getString('tags') || '')
-      if (prevTagsDup.indexOf('duplicata') === -1) {
-        record.set('tags', prevTagsDup ? prevTagsDup + ', duplicata' : 'duplicata')
+      var partsDup = prevTagsDup.split(',')
+      var hasDup = false
+      var listDup = []
+      for (var di = 0; di < partsDup.length; di++) {
+        var dt = String(partsDup[di] || '').trim()
+        if (!dt) continue
+        if (dt.toLowerCase() === 'duplicata') hasDup = true
+        listDup.push(dt)
+      }
+      if (!hasDup) {
+        listDup.push('duplicata')
+        record.set('tags', listDup.join(', '))
       }
     }
     $app.save(record)
@@ -364,9 +466,16 @@ routerAdd('POST', '/backend/v1/cadastro-publico', (e) => {
   if (validPdfFiles.length > 0) {
     successMsg += ' com ' + validPdfFiles.length + ' documento(s) anexado(s)'
   }
+  if (discardedUploads.length > 0) {
+    successMsg +=
+      '. Atenção: alguns arquivos foram ignorados por estarem fora do padrão (' +
+      discardedUploads.join('; ') +
+      ')'
+  }
   return e.json(200, {
     success: true,
     message: successMsg,
     documentosRecebidos: validPdfFiles.length,
+    arquivosDescartados: discardedUploads,
   })
 })
