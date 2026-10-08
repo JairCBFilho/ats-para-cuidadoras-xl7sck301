@@ -14,6 +14,7 @@ import {
   Download,
   FileSpreadsheet,
   FileType,
+  Sparkles,
 } from 'lucide-react'
 import { ImportCsvDialog } from '@/components/ImportCsvDialog'
 import { ImportCurriculoDialog } from '@/components/ImportCurriculoDialog'
@@ -39,6 +40,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { CuidadorFormDialog } from '@/components/cuidador-form-dialog'
+import { ExtrairCurriculoModal } from '@/components/ExtrairCurriculoModal'
 import { TagEditor, TagBadges } from '@/components/TagEditor'
 import { useFileUrl } from '@/hooks/use-file-url'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
@@ -83,6 +85,7 @@ export default function BancoTalentos() {
   const [importOpen, setImportOpen] = useState(false)
   const [importCurriculoOpen, setImportCurriculoOpen] = useState(false)
   const [comunicacaoOpen, setComunicacaoOpen] = useState(false)
+  const [extrairCuidador, setExtrairCuidador] = useState<Cuidador | null>(null)
 
   // Filtros básicos (sempre visíveis)
   const [filterDisp, setFilterDisp] = useState('all')
@@ -593,38 +596,58 @@ export default function BancoTalentos() {
 
                     {parseTags(c.tags).length > 0 && <TagBadges tags={c.tags} />}
 
-                    <div className="flex justify-end gap-1">
-                      <TagEditor tags={c.tags} onChange={(tags) => handleTagsChange(c, tags)} />
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          setEditing(c)
-                          setDialogOpen(true)
-                        }}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      {isInactive ? (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleReativar(c)}
-                          className="text-xs text-emerald-700 hover:text-emerald-800"
-                          title="Reativar cuidadora"
-                        >
-                          Reativar
-                        </Button>
-                      ) : (
+                    <div className="flex items-center justify-between pt-1">
+                      <div>
+                        {(c.curriculo ||
+                          (c.documentos_pdf &&
+                            (Array.isArray(c.documentos_pdf)
+                              ? c.documentos_pdf.length > 0
+                              : Boolean(c.documentos_pdf)))) && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setExtrairCuidador(c)}
+                            className="rounded-full h-7 px-2.5 text-[11px] bg-amber-50 hover:bg-amber-100 text-neutral-900 border-amber-300 gap-1 font-medium shadow-none"
+                            title="Extrair dados do currículo anexado com IA"
+                          >
+                            <Sparkles className="h-3 w-3 text-amber-600" />
+                            Extrair dados
+                          </Button>
+                        )}
+                      </div>
+                      <div className="flex justify-end gap-1">
+                        <TagEditor tags={c.tags} onChange={(tags) => handleTagsChange(c, tags)} />
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => setCuidadorToDelete(c)}
-                          title="Excluir cuidadora"
+                          onClick={() => {
+                            setEditing(c)
+                            setDialogOpen(true)
+                          }}
                         >
-                          <Trash2 className="h-4 w-4 text-neutral-500 hover:text-red-600" />
+                          <Pencil className="h-4 w-4" />
                         </Button>
-                      )}
+                        {isInactive ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleReativar(c)}
+                            className="text-xs text-emerald-700 hover:text-emerald-800"
+                            title="Reativar cuidadora"
+                          >
+                            Reativar
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setCuidadorToDelete(c)}
+                            title="Excluir cuidadora"
+                          >
+                            <Trash2 className="h-4 w-4 text-neutral-500 hover:text-red-600" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -662,6 +685,17 @@ export default function BancoTalentos() {
         onCompleted={loadData}
       />
       <ComunicacaoPorTagDialog open={comunicacaoOpen} onOpenChange={setComunicacaoOpen} />
+
+      {extrairCuidador && (
+        <ExtrairCurriculoModal
+          open={Boolean(extrairCuidador)}
+          onOpenChange={(v) => {
+            if (!v) setExtrairCuidador(null)
+          }}
+          cuidador={extrairCuidador}
+          onSuccess={loadData}
+        />
+      )}
 
       {/* AlertDialog de confirmação de exclusão (Lazuli design: #FAF9F5, rounded-3xl) */}
       <AlertDialog

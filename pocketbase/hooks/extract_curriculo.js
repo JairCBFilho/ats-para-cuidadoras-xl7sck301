@@ -64,25 +64,99 @@ routerAdd(
 
     var body = e.requestInfo().body || {}
     var contentB64 = body.content
-    if (!contentB64) {
-      return e.badRequestError('Conteudo do PDF nao enviado (campo "content" em base64)')
-    }
+    var cuidadorId = body.cuidador_id || body.cuidadorId || ''
 
     var userId = e.auth ? e.auth.id : ''
     if (!userId) return e.unauthorizedError('Autenticacao necessaria')
 
-    var binaryStr = ''
-    try {
-      binaryStr = base64Decode(String(contentB64))
-    } catch (err) {
-      return e.json(400, { error: 'PDF invalido: falha ao decodificar base64' })
+    var extractedText = ''
+
+    // Se foi passado cuidador_id, tenta extrair direto do registro existente
+    if (cuidadorId) {
+      var record = null
+      try {
+        record = $app.findRecordById('cuidadores', String(cuidadorId))
+      } catch (err) {
+        return e.json(404, { error: 'Cuidadora não encontrada' })
+      }
+
+      // Verifica campo curriculo
+      var curriculoFile = record.getString('curriculo') || ''
+      var docPdfs = []
+      try {
+        docPdfs = record.getStringSlice('documentos_pdf') || []
+      } catch (_) {
+        try {
+          var rawDocs = record.get('documentos_pdf')
+          if (Array.isArray(rawDocs)) docPdfs = rawDocs
+          else if (rawDocs) docPdfs = [String(rawDocs)]
+        } catch (_) {}
+      }
+
+      // Tenta primeiro via $documents.toMarkdown (nativo do Skip Cloud)
+      var markdownExtracted = ''
+      if (curriculoFile && typeof $documents !== 'undefined' && $documents.toMarkdown) {
+        try {
+          var docRes = $documents.toMarkdown({ record: record, field: 'curriculo' })
+          if (docRes && docRes.markdown) markdownExtracted = docRes.markdown
+        } catch (errMd) {
+          $app
+            .logger()
+            .warn('extract-curriculo: toMarkdown falhou para curriculo', 'error', String(errMd))
+        }
+      }
+
+      // Se não conseguiu no campo curriculo, tenta nos documentos_pdf caso existam
+      if (
+        !markdownExtracted &&
+        docPdfs.length > 0 &&
+        typeof $documents !== 'undefined' &&
+        $documents.toMarkdown
+      ) {
+        for (var p = 0; p < docPdfs.length; p++) {
+          try {
+            var docRes2 = $documents.toMarkdown({ record: record, field: 'documentos_pdf' })
+            if (docRes2 && docRes2.markdown) {
+              markdownExtracted = docRes2.markdown
+              break
+            }
+          } catch (_) {}
+        }
+      }
+
+      if (markdownExtracted && markdownExtracted.trim().length >= 10) {
+        extractedText = markdownExtracted.trim()
+      } else if (!contentB64) {
+        // Se toMarkdown falhou ou arquivo não tem texto, e não veio content b64
+        if (!curriculoFile && docPdfs.length === 0) {
+          return e.json(400, { error: 'Nenhum currículo ou documento anexado a este cadastro' })
+        }
+        return e.json(422, {
+          error:
+            'Não foi possível extrair o texto do currículo anexado. O arquivo pode ser uma imagem escaneada ou estar protegido.',
+        })
+      }
     }
 
-    if (!binaryStr) {
-      return e.json(400, { error: 'PDF invalido: conteudo vazio apos decodificacao' })
+    // Se ainda não tiver extractedText e veio content em base64 (upload direto ou fallback)
+    if (!extractedText && contentB64) {
+      var binaryStr = ''
+      try {
+        binaryStr = base64Decode(String(contentB64))
+      } catch (err) {
+        return e.json(400, { error: 'PDF invalido: falha ao decodificar base64' })
+      }
+
+      if (!binaryStr) {
+        return e.json(400, { error: 'PDF invalido: conteudo vazio apos decodificacao' })
+      }
+
+      extractedText = extractPdfText(binaryStr)
     }
 
-    var extractedText = extractPdfText(binaryStr)
+    if (!extractedText && !contentB64 && !cuidadorId) {
+      return e.badRequestError('Envie "cuidador_id" ou "content" (base64 do PDF)')
+    }
 
     if (!extractedText || extractedText.trim().length < 10) {
       return e.json(422, {

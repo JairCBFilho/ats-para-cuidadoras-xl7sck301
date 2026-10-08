@@ -13,6 +13,7 @@ import { FotoUpload } from '@/components/foto-upload'
 import { CurriculoUpload } from '@/components/CurriculoUpload'
 import { DocumentosPdfList } from '@/components/DocumentosPdfList'
 import { DatePicker } from '@/components/date-picker'
+import { ExtrairCurriculoModal } from '@/components/ExtrairCurriculoModal'
 import {
   Dialog,
   DialogContent,
@@ -33,7 +34,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { X, Plus } from 'lucide-react'
+import { X, Plus, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 
 const ORIGEM_OPTIONS = ['Indicação', 'LinkedIn', 'Instagram', 'Site', 'WhatsApp', 'Outro']
@@ -114,6 +115,7 @@ export function CuidadorFormDialog({ open, onOpenChange, cuidador, onSaved }: Pr
   const [fotoRemoved, setFotoRemoved] = useState(false)
   const [selectedCurriculo, setSelectedCurriculo] = useState<File | null>(null)
   const [curriculoRemoved, setCurriculoRemoved] = useState(false)
+  const [extrairModalOpen, setExtrairModalOpen] = useState(false)
 
   useEffect(() => {
     if (open) {
@@ -668,7 +670,26 @@ export function CuidadorFormDialog({ open, onOpenChange, cuidador, onSaved }: Pr
             </div>
           </div>
           <div>
-            <Label>Currículo (PDF)</Label>
+            <div className="flex items-center justify-between mb-1.5">
+              <Label>Currículo (PDF)</Label>
+              {cuidador &&
+                (cuidador.curriculo ||
+                  (cuidador.documentos_pdf &&
+                    (Array.isArray(cuidador.documentos_pdf)
+                      ? cuidador.documentos_pdf.length > 0
+                      : Boolean(cuidador.documentos_pdf)))) && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setExtrairModalOpen(true)}
+                    className="rounded-full h-7 px-3 text-xs bg-amber-50 hover:bg-amber-100 text-neutral-900 border-amber-300 gap-1.5 shadow-sm font-medium"
+                  >
+                    <Sparkles className="h-3.5 w-3.5 text-amber-600" />
+                    Extrair dados do currículo
+                  </Button>
+                )}
+            </div>
             <CurriculoUpload
               record={cuidador}
               curriculo={cuidador?.curriculo}
@@ -682,8 +703,29 @@ export function CuidadorFormDialog({ open, onOpenChange, cuidador, onSaved }: Pr
           {/* Documentos em PDF anexados pelo formulário público */}
           {cuidador && (
             <div className="pt-2">
-              <Label className="block mb-2">PDFs Anexados (Formulário Público)</Label>
-              <DocumentosPdfList cuidador={cuidador} />
+              <div className="flex items-center justify-between mb-2">
+                <Label className="block">PDFs Anexados (Formulário Público)</Label>
+                {cuidador.documentos_pdf &&
+                  (Array.isArray(cuidador.documentos_pdf)
+                    ? cuidador.documentos_pdf.length > 0
+                    : Boolean(cuidador.documentos_pdf)) &&
+                  !cuidador.curriculo && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setExtrairModalOpen(true)}
+                      className="rounded-full h-7 px-3 text-xs bg-amber-50 hover:bg-amber-100 text-neutral-900 border-amber-300 gap-1.5 shadow-sm font-medium"
+                    >
+                      <Sparkles className="h-3.5 w-3.5 text-amber-600" />
+                      Extrair dados do currículo
+                    </Button>
+                  )}
+              </div>
+              <DocumentosPdfList
+                cuidador={cuidador}
+                onExtrairClick={() => setExtrairModalOpen(true)}
+              />
             </div>
           )}
         </div>
@@ -696,6 +738,41 @@ export function CuidadorFormDialog({ open, onOpenChange, cuidador, onSaved }: Pr
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      {cuidador && (
+        <ExtrairCurriculoModal
+          open={extrairModalOpen}
+          onOpenChange={setExtrairModalOpen}
+          cuidador={cuidador}
+          onSuccess={() => {
+            onSaved()
+            onOpenChange(false)
+          }}
+          onApplyToForm={(extracted) => {
+            setForm((prev) => ({
+              ...prev,
+              nome: extracted.nome || prev.nome,
+              email: extracted.email || prev.email,
+              telefone: extracted.telefone || prev.telefone,
+              cpf: extracted.cpf || prev.cpf,
+              nascimento: extracted.data_nascimento || prev.nascimento,
+              endereco: extracted.endereco || prev.endereco,
+              bairro: extracted.bairro || prev.bairro,
+              cidade: extracted.cidade || prev.cidade,
+              uf: extracted.uf || prev.uf,
+              formacao: extracted.formacao || prev.formacao,
+              curso_cuidador: extracted.curso_cuidador || prev.curso_cuidador,
+              tempo_experiencia: extracted.tempo_experiencia || prev.tempo_experiencia,
+              experiencia_ilp: extracted.experiencia_ilp || prev.experiencia_ilp,
+              outros_cursos_experiencias:
+                extracted.outros_cursos || prev.outros_cursos_experiencias,
+              referencias: extracted.referencias || prev.referencias,
+              disponibilidade: extracted.disponibilidade || prev.disponibilidade,
+              turno: extracted.turno || prev.turno,
+            }))
+          }}
+        />
+      )}
     </Dialog>
   )
 }

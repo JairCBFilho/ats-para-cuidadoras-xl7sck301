@@ -405,48 +405,59 @@ routerAdd('POST', '/backend/v1/cadastro-publico', (e) => {
       record.set('documentos_pdf', combinedPdfs)
     }
 
+    var nowIsoDate = new Date().toISOString().replace('T', ' ')
     if (isNew) {
       record.set('origem', 'Formulário público')
       record.set('consentimento_lgpd', true)
-      record.set('consentimento_data', new Date().toISOString().replace('T', ' '))
-    } else {
-      // 2. Tag automática "Atualizado" quando atualiza registro existente
-      var prevTags = String(record.getString('tags') || '')
-      var partsTags = prevTags.split(',')
-      var tagList = []
-      var seenTags = {}
-      for (var pi = 0; pi < partsTags.length; pi++) {
-        var pt = String(partsTags[pi] || '').trim()
-        if (!pt) continue
-        var lowPt = pt.toLowerCase()
-        if (!seenTags[lowPt]) {
-          seenTags[lowPt] = true
-          tagList.push(pt)
-        }
-      }
+      record.set('consentimento_data', nowIsoDate)
+      // Preencher data_cadastro automaticamente com a data/hora do envio
+      record.set('data_cadastro', nowIsoDate)
+    }
 
-      if (!seenTags['atualizado']) {
-        tagList.push('Atualizado')
-        record.set('tags', tagList.join(', '))
+    // Gerenciamento unificado de tags (preservando existentes sem duplicar)
+    var currentTagsStr = String(record.getString('tags') || '')
+    var tagParts = currentTagsStr.split(',')
+    var tagList = []
+    var seenTags = {}
+    for (var ti = 0; ti < tagParts.length; ti++) {
+      var tItem = String(tagParts[ti] || '').trim()
+      if (!tItem) continue
+      var lowItem = tItem.toLowerCase()
+      if (!seenTags[lowItem]) {
+        seenTags[lowItem] = true
+        tagList.push(tItem)
       }
     }
 
+    var addTagIfMissing = function (tagToAdd) {
+      var lowTag = tagToAdd.toLowerCase()
+      if (!seenTags[lowTag]) {
+        seenTags[lowTag] = true
+        tagList.push(tagToAdd)
+      }
+    }
+
+    var hasAttachedCurriculo = Boolean(validCurriculoFile)
+
+    // Regra 1: Tag "PDF Currículo" automática sempre que houver currículo anexado
+    if (hasAttachedCurriculo) {
+      addTagIfMissing('PDF Currículo')
+    }
+
+    // Regra 2: Tag "Atualizado"
+    // - Atualização de cadastro existente (sempre recebe "Atualizado")
+    // - Cadastro NOVO que venha COM currículo anexado (também recebe "Atualizado")
+    // - Cadastro novo SEM currículo continua sem a tag "Atualizado"
+    if (!isNew || hasAttachedCurriculo) {
+      addTagIfMissing('Atualizado')
+    }
+
+    // Regra 3: Duplicata
     if (isDuplicate) {
-      var prevTagsDup = String(record.getString('tags') || '')
-      var partsDup = prevTagsDup.split(',')
-      var hasDup = false
-      var listDup = []
-      for (var di = 0; di < partsDup.length; di++) {
-        var dt = String(partsDup[di] || '').trim()
-        if (!dt) continue
-        if (dt.toLowerCase() === 'duplicata') hasDup = true
-        listDup.push(dt)
-      }
-      if (!hasDup) {
-        listDup.push('duplicata')
-        record.set('tags', listDup.join(', '))
-      }
+      addTagIfMissing('duplicata')
     }
+
+    record.set('tags', tagList.join(', '))
     $app.save(record)
   } catch (err) {
     $app

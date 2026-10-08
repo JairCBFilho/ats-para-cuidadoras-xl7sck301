@@ -7,9 +7,10 @@ import type { Cuidador } from '@/services/cuidadores'
 interface Props {
   cuidador: Cuidador | null
   className?: string
+  onExtrairClick?: () => void
 }
 
-export function DocumentosPdfList({ cuidador, className }: Props) {
+export function DocumentosPdfList({ cuidador, className, onExtrairClick }: Props) {
   const filenames = useMemo(() => {
     if (!cuidador || !cuidador.documentos_pdf) return []
     if (Array.isArray(cuidador.documentos_pdf)) {
@@ -56,6 +57,16 @@ export function DocumentosPdfList({ cuidador, className }: Props) {
                 </span>
               </div>
               <div className="flex items-center gap-1 shrink-0 ml-2">
+                {onExtrairClick && (
+                  <button
+                    type="button"
+                    onClick={onExtrairClick}
+                    className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium bg-amber-100 hover:bg-amber-200 text-amber-950 transition-colors"
+                    title="Extrair dados deste currículo/documento com IA"
+                  >
+                    <span>Extrair dados</span>
+                  </button>
+                )}
                 <a
                   href={fileUrl}
                   target="_blank"
