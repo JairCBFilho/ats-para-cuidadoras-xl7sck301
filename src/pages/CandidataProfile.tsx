@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft,
   Plus,
@@ -13,9 +13,11 @@ import {
   Linkedin,
   ExternalLink,
   Send,
+  Database,
 } from 'lucide-react'
 import { useRealtime } from '@/hooks/use-realtime'
 import { getCandidata, type Candidata } from '@/services/candidatas'
+import { getCuidadores, type Cuidador } from '@/services/cuidadores'
 import {
   getReferencias,
   deleteReferencia,
@@ -47,8 +49,10 @@ const statusLabel: Record<StatusReferencia, string> = {
 
 export default function CandidataProfile() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
   const [candidata, setCandidata] = useState<Candidata | null>(null)
   const [referencias, setReferencias] = useState<Referencia[]>([])
+  const [cuidadorCorrespondente, setCuidadorCorrespondente] = useState<Cuidador | null>(null)
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingRef, setEditingRef] = useState<Referencia | null>(null)
@@ -58,9 +62,18 @@ export default function CandidataProfile() {
   const loadData = async () => {
     if (!id) return
     try {
-      const [c, refs] = await Promise.all([getCandidata(id), getReferencias(id)])
+      const [c, refs, cuidadores] = await Promise.all([
+        getCandidata(id),
+        getReferencias(id),
+        getCuidadores().catch(() => [] as Cuidador[]),
+      ])
       setCandidata(c)
       setReferencias(refs)
+      if (c && c.email) {
+        const clean = c.email.trim().toLowerCase()
+        const found = cuidadores.find((item) => (item.email || '').trim().toLowerCase() === clean)
+        setCuidadorCorrespondente(found || null)
+      }
     } catch (err) {
       toast.error(getErrorMessage(err))
     } finally {
@@ -71,6 +84,9 @@ export default function CandidataProfile() {
     loadData()
   }, [id])
   useRealtime('candidatas', () => {
+    loadData()
+  })
+  useRealtime('cuidadores', () => {
     loadData()
   })
   useRealtime('applications', () => {
@@ -92,15 +108,41 @@ export default function CandidataProfile() {
 
   return (
     <div className="space-y-6 p-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <Button variant="ghost" size="sm" asChild>
           <Link to="/candidatas">
             <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
           </Link>
         </Button>
-        <Button onClick={() => setCommOpen(true)}>
-          <Send className="mr-2 h-4 w-4" /> Enviar comunicação
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          {cuidadorCorrespondente ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                navigate(`/banco-talentos?email=${encodeURIComponent(candidata.email)}&editar=true`)
+              }
+              className="rounded-full bg-amber-50 hover:bg-amber-100 text-neutral-900 border-amber-300 font-medium"
+            >
+              <Database className="mr-2 h-4 w-4 text-amber-700" />
+              Ver cadastro no Banco de Talentos
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              disabled
+              className="rounded-full opacity-60 text-xs"
+              title="Não foi localizado cadastro correspondente por e-mail no Banco de Talentos"
+            >
+              <Database className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
+              Sem cadastro no Banco de Talentos
+            </Button>
+          )}
+          <Button onClick={() => setCommOpen(true)} className="rounded-full">
+            <Send className="mr-2 h-4 w-4" /> Enviar comunicação
+          </Button>
+        </div>
       </div>
 
       <Card>

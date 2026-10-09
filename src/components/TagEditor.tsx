@@ -58,11 +58,14 @@ export function TagEditor({ tags, onChange, disabled }: Props) {
 
   const list = useMemo(() => parseTags(tags), [tags])
 
-  const addTag = (raw: string) => {
+  const addTag = (raw: string, shouldClose = false) => {
     const t = raw.trim()
-    if (!t) return
-    if (list.some((x) => x.toLowerCase() === t.toLowerCase())) return
-    onChange(stringifyTags([...list, t]))
+    if (t && !list.some((x) => x.toLowerCase() === t.toLowerCase())) {
+      onChange(stringifyTags([...list, t]))
+    }
+    if (shouldClose) {
+      setOpen(false)
+    }
   }
 
   const removeTag = (t: string) => {
@@ -72,7 +75,7 @@ export function TagEditor({ tags, onChange, disabled }: Props) {
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault()
-      addTag(draft)
+      addTag(draft, true)
       setDraft('')
     }
   }
@@ -80,6 +83,15 @@ export function TagEditor({ tags, onChange, disabled }: Props) {
   const suggestions = SUGGESTED_TAGS.filter(
     (s) => !list.some((x) => x.toLowerCase() === s.toLowerCase()),
   )
+
+  const handleSaveAndClose = () => {
+    if (draft.trim()) {
+      addTag(draft, true)
+      setDraft('')
+    } else {
+      setOpen(false)
+    }
+  }
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -94,9 +106,24 @@ export function TagEditor({ tags, onChange, disabled }: Props) {
           <Plus className="h-3.5 w-3.5" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-72" align="start">
+      <PopoverContent
+        className="w-72 rounded-2xl bg-[#FAF9F5] border-neutral-200 p-4 shadow-lg"
+        align="start"
+      >
         <div className="space-y-3">
-          <p className="text-sm font-medium">Tags do cuidador</p>
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold text-neutral-900">Tags do cuidador</p>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setOpen(false)}
+              className="h-6 w-6 p-0 rounded-full text-muted-foreground hover:text-neutral-900"
+              title="Fechar"
+            >
+              <X className="h-3.5 w-3.5" />
+            </Button>
+          </div>
 
           {/* Tags atuais */}
           {list.length > 0 ? (
@@ -108,6 +135,7 @@ export function TagEditor({ tags, onChange, disabled }: Props) {
                     type="button"
                     onClick={() => removeTag(t)}
                     className="ml-0.5 rounded-full hover:bg-black/10"
+                    title={`Remover tag ${t}`}
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -118,23 +146,21 @@ export function TagEditor({ tags, onChange, disabled }: Props) {
             <p className="text-xs text-muted-foreground">Nenhuma tag ainda.</p>
           )}
 
-          {/* Nova tag */}
+          {/* Nova tag com botão de check para salvar e fechar */}
           <div className="flex gap-2">
             <Input
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={onKeyDown}
               placeholder="Nova tag + Enter"
-              className="h-8 text-sm"
+              className="h-8 text-sm rounded-xl bg-white"
             />
             <Button
               size="sm"
-              variant="secondary"
-              className="h-8 px-2"
-              onClick={() => {
-                addTag(draft)
-                setDraft('')
-              }}
+              variant="default"
+              className="h-8 px-2.5 rounded-xl bg-neutral-900 text-white hover:bg-neutral-800"
+              title="Salvar e fechar"
+              onClick={handleSaveAndClose}
             >
               <Check className="h-3.5 w-3.5" />
             </Button>
@@ -143,14 +169,16 @@ export function TagEditor({ tags, onChange, disabled }: Props) {
           {/* Sugestões */}
           {suggestions.length > 0 && (
             <div>
-              <p className="mb-1.5 text-xs text-muted-foreground">Sugestões</p>
+              <p className="mb-1.5 text-xs text-muted-foreground">
+                Sugestões (clique para adicionar)
+              </p>
               <div className="flex flex-wrap gap-1">
                 {suggestions.map((s) => (
                   <button
                     key={s}
                     type="button"
-                    onClick={() => addTag(s)}
-                    className="inline-flex items-center rounded-md border border-dashed border-input px-1.5 py-0.5 text-[10px] font-medium hover:bg-accent"
+                    onClick={() => addTag(s, false)}
+                    className="inline-flex items-center rounded-md border border-dashed border-input bg-white px-1.5 py-0.5 text-[10px] font-medium hover:bg-amber-100 hover:border-amber-300 transition-colors"
                   >
                     + {s}
                   </button>
@@ -158,6 +186,19 @@ export function TagEditor({ tags, onChange, disabled }: Props) {
               </div>
             </div>
           )}
+
+          {/* Botão Concluir/Salvar */}
+          <div className="pt-1 border-t border-neutral-200 flex justify-end">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleSaveAndClose}
+              className="rounded-full text-xs h-7 px-3 bg-white hover:bg-neutral-100 text-neutral-800 border-neutral-300"
+            >
+              <Check className="h-3 w-3 mr-1 text-emerald-600" />
+              Concluir
+            </Button>
+          </div>
         </div>
       </PopoverContent>
     </Popover>

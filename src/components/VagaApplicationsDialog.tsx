@@ -69,12 +69,37 @@ export function VagaApplicationsDialog({ vaga, open, onOpenChange }: Props) {
             <p className="text-muted-foreground">Nenhuma candidatura para esta vaga.</p>
           ) : (
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Button variant="outline" size="sm" onClick={toggleAll}>
-                  {selected.size === apps.length ? 'Desmarcar todas' : 'Selecionar todas'}
-                </Button>
-                <Button size="sm" disabled={selected.size === 0} onClick={() => setBulkOpen(true)}>
-                  <Send className="mr-2 h-3.5 w-3.5" /> Enviar em lote ({selected.size})
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-white/70 border border-neutral-200/80 p-2.5">
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={toggleAll}
+                    className="rounded-full h-8 text-xs"
+                  >
+                    {selected.size === apps.length ? 'Desmarcar todas' : 'Selecionar todas'}
+                  </Button>
+                  <span className="text-xs font-medium text-neutral-700">
+                    {selected.size === 0 ? (
+                      <span className="text-muted-foreground">Nenhuma selecionada</span>
+                    ) : (
+                      <Badge
+                        variant="secondary"
+                        className="rounded-full bg-amber-100 text-amber-900 border-amber-300 font-semibold px-2 py-0.5"
+                      >
+                        {selected.size} {selected.size === 1 ? 'selecionada' : 'selecionadas'}
+                      </Badge>
+                    )}
+                  </span>
+                </div>
+                <Button
+                  size="sm"
+                  disabled={selected.size === 0}
+                  onClick={() => setBulkOpen(true)}
+                  className="rounded-full h-8"
+                >
+                  <Send className="mr-2 h-3.5 w-3.5" /> Enviar em lote{' '}
+                  {selected.size > 0 && `(${selected.size})`}
                 </Button>
               </div>
               {apps.map((app) => (

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   Plus,
   Pencil,
@@ -15,6 +16,7 @@ import {
   FileSpreadsheet,
   FileType,
   Sparkles,
+  X,
 } from 'lucide-react'
 import { ImportCsvDialog } from '@/components/ImportCsvDialog'
 import { ImportCurriculoDialog } from '@/components/ImportCurriculoDialog'
@@ -78,6 +80,10 @@ function CuidadorPhoto({ cuidador }: { cuidador: Cuidador }) {
 }
 
 export default function BancoTalentos() {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const highlightEmail = searchParams.get('email') || ''
+  const highlightId = searchParams.get('id') || ''
+
   const [cuidadores, setCuidadores] = useState<Cuidador[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -91,7 +97,7 @@ export default function BancoTalentos() {
   const [filterDisp, setFilterDisp] = useState('all')
   const [filterEsp, setFilterEsp] = useState('')
   const [filterLoc, setFilterLoc] = useState('')
-  const [filterNome, setFilterNome] = useState('')
+  const [filterNome, setFilterNome] = useState(searchParams.get('busca') || '')
   const [sortOrder, setSortOrder] = useState<'nome' | '-nome' | 'created' | '-created'>('-created')
 
   // Filtros avançados (colapsáveis)
@@ -134,6 +140,25 @@ export default function BancoTalentos() {
   useEffect(() => {
     loadData()
   }, [])
+
+  // Se vier com ?email= ou ?id= ou ?editar=true via searchParams, abre automaticamente para edição ou destaca
+  useEffect(() => {
+    if (!loading && cuidadores.length > 0) {
+      const editRequested = searchParams.get('editar') === 'true'
+      let target: Cuidador | undefined
+      if (highlightId) {
+        target = cuidadores.find((c) => c.id === highlightId)
+      } else if (highlightEmail) {
+        const low = highlightEmail.trim().toLowerCase()
+        target = cuidadores.find((c) => (c.email || '').trim().toLowerCase() === low)
+      }
+      if (target && editRequested && !dialogOpen) {
+        setEditing(target)
+        setDialogOpen(true)
+      }
+    }
+  }, [loading, cuidadores, highlightEmail, highlightId, searchParams, dialogOpen])
+
   useRealtime('cuidadores', (e) => {
     const record = e.record as unknown as Cuidador
     if (e.action === 'create') setCuidadores((prev) => [record, ...prev])
@@ -146,13 +171,18 @@ export default function BancoTalentos() {
     const contains = (field: string | undefined, query: string) =>
       !query || (field || '').toLowerCase().includes(query.toLowerCase())
 
+    const lowHighlightEmail = highlightEmail.trim().toLowerCase()
+
     return cuidadores
       .filter((c) => {
         const isInactive = hasTag(c.tags, 'Inativa')
-        if (!showInativas && isInactive) return false
-        if (showInativas && filterTag === 'all' && !isInactive) {
-          // Quando showInativas está marcado, exibe as inativas (ou todas se o usuário quiser)
-          // mas se o filtro for especificamente "Mostrar inativas", ele inclui
+        // Se a cuidadora for o alvo de busca por email/id vindo de candidata, exibe mesmo que esteja inativa
+        const isTarget =
+          (highlightId && c.id === highlightId) ||
+          (lowHighlightEmail && (c.email || '').trim().toLowerCase() === lowHighlightEmail)
+
+        if (!isTarget) {
+          if (!showInativas && isInactive) return false
         }
 
         if (!contains(c.nome, filterNome)) return false
@@ -193,6 +223,8 @@ export default function BancoTalentos() {
     filterTag,
     showInativas,
     sortOrder,
+    highlightEmail,
+    highlightId,
   ])
 
   // Resetar a paginação ao mudar qualquer critério de busca/filtro/ordenação
@@ -345,6 +377,34 @@ export default function BancoTalentos() {
           </Button>
         </div>{' '}
       </div>
+
+      {/* Alerta de busca/filtro por candidata vindo de outra tela */}
+      {(highlightEmail || highlightId) && (
+        <div className="flex items-center justify-between gap-3 rounded-2xl bg-amber-50 border border-amber-300 p-3 shadow-sm">
+          <div className="text-xs text-neutral-800">
+            Visualizando cadastro no Banco de Talentos vinculado à candidata{' '}
+            <strong className="text-neutral-950 font-semibold">
+              {highlightEmail || highlightId}
+            </strong>
+            .
+          </div>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => {
+              const sp = new URLSearchParams(searchParams)
+              sp.delete('email')
+              sp.delete('id')
+              sp.delete('editar')
+              sp.delete('busca')
+              setSearchParams(sp)
+            }}
+            className="rounded-full text-xs h-7 px-2.5 text-neutral-700 hover:bg-amber-100"
+          >
+            <X className="h-3 w-3 mr-1" /> Limpar filtro de candidata
+          </Button>
+        </div>
+      )}
 
       {/* Filtros básicos */}
       <div className="flex flex-wrap items-center gap-3">
@@ -531,12 +591,18 @@ export default function BancoTalentos() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {visibleCuidadores.map((c) => {
               const isInactive = hasTag(c.tags, 'Inativa')
+              const isHighlighted =
+                (highlightId && c.id === highlightId) ||
+                (highlightEmail &&
+                  (c.email || '').trim().toLowerCase() === highlightEmail.trim().toLowerCase())
               return (
                 <Card
                   key={c.id}
                   className={cn(
-                    'overflow-hidden hover:shadow-md transition-shadow',
+                    'overflow-hidden hover:shadow-md transition-all',
                     isInactive && 'opacity-70 border-dashed border-neutral-300 bg-neutral-50/70',
+                    isHighlighted &&
+                      'ring-2 ring-amber-500 border-amber-400 bg-amber-50/40 shadow-lg',
                   )}
                 >
                   <CardContent className="p-4 space-y-3">
